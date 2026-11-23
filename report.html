@@ -6,6 +6,8 @@
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" href="favicon.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="theme-color" content="#ffffff">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
 <title>업무 진행 보고</title>
 <style>
   :root{--bg:#f3f5f9;--card:#fff;--line:#e2e6ee;--text:#1b2333;--sub:#667085;--primary:#2563eb;--pw:#e8efff;
@@ -65,6 +67,16 @@
   .toast.show{opacity:1} .toast.e{background:var(--over)}
   .demo{background:#fff7d6;color:#7a5b00;text-align:center;padding:6px;font-size:12px}
   .testbar{background:#fef3c7;border:1px solid #fcd34d;color:#92400e;border-radius:12px;padding:10px 14px;margin-bottom:12px;font-size:13.5px}
+
+  /* 디자인 v2 */
+  :root{--bg:#f5f6f8;--line:#e4e7ec;--text:#101828;--primary:#1f4fd8;--pw:#eaf0ff}
+  body{font-family:"Pretendard Variable",Pretendard,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;letter-spacing:-.01em;-webkit-font-smoothing:antialiased;-webkit-text-size-adjust:100%}
+  .card{box-shadow:0 1px 2px rgba(16,24,40,.05);border-radius:16px}
+  .brandbar{display:flex;align-items:center;gap:10px;padding:14px 2px 4px}
+  .brandbar img{width:32px;height:32px}
+  .brandbar b{font-size:15px;letter-spacing:-.02em}
+  .brandbar small{display:block;font-size:11.5px;color:var(--sub);font-weight:500}
+  .submit{box-shadow:0 4px 12px rgba(31,79,216,.25)}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4"></script>
 <script src="config.js"></script>
@@ -72,7 +84,7 @@
 <body>
 <div class="demo" id="demo" hidden>미리보기 모드 — 샘플 업무로 표시됩니다 (저장 안 됨)</div>
 <div class="wrap">
-  <div class="top">📋 <span id="sender">업무알림</span> · 진행 현황 보고</div>
+  <div class="brandbar"><img src="favicon.png" alt="SW"><div><b>업무 진행 보고</b><small><span id="sender">업무알림</span></small></div></div>
   <div id="app"><div class="card msg">불러오는 중…</div></div>
 </div>
 <div class="toast" id="toast"></div>
