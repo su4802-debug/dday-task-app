@@ -1,0 +1,8 @@
+{
+  "name": "dday-mailer",
+  "private": true,
+  "type": "module",
+  "description": "업무 D-day 관리 — Gmail 메일 발송기 (GitHub Actions)",
+  "scripts": { "start": "node send.mjs" },
+  "dependencies": { "nodemailer": "^6.9.16" }
+}
