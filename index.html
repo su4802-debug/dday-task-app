@@ -467,7 +467,7 @@
     <div class="card" style="grid-column:1/-1">
       <h3>🧪 테스트 업무 보고 결과 <span class="sp"></span>
         <button class="btn sm" id="btnSbReload">새로고침</button><button class="btn sm danger" id="btnSbReset">초기화</button></h3>
-      <div class="hint" style="margin-bottom:10px">테스트 메일·카톡 안내문의 링크로 입력한 내용은 <b>실제 DB(업무·작업자·진행보고)</b>에 기록되고, 업무 현황·진행 보고 탭에도 나타납니다. 자동 알림·요약 메일에서는 제외됩니다. <b>[초기화]</b>하면 테스트 업무와 그 보고 기록만 지우고 새로 만듭니다.</div>
+      <div class="hint" style="margin-bottom:10px">테스트 메일·카톡 안내문의 링크로 입력한 내용은 <b>실제 DB(업무·작업자·진행보고)</b>에 기록되고, 업무 현황·진행 보고 탭에도 나타납니다. 자동 알림·요약 메일에서는 제외됩니다. <b>[초기화]</b>하면 테스트 업무와 보고 기록을 모두 지웁니다 (업무 현황에서도 사라짐).</div>
       <div id="sbOut" class="hint">불러오는 중…</div>
     </div>
   </div>
@@ -1311,7 +1311,7 @@ $('#rsvBody').addEventListener('click', async e => {
 
 /* ================= 테스트 ================= */
 async function loadTest() {
-  await loadSandbox();          // 테스트 업무가 없으면 이때 생성됨
+  await loadSandbox();          // 테스트 업무가 없으면 "없음" 표시 (자동 생성 안 함)
   await loadTasks();
   const opts = '<option value="TEST">🧪 테스트 업무 (DB에 기록 · 초기화 가능)</option>' + taskOptions(false);
   ['#pvTask', '#testTask'].forEach(s => { const c = $(s).value; $(s).innerHTML = opts; $(s).value = c; });
@@ -1320,13 +1320,17 @@ async function loadTest() {
 }
 async function loadSandbox() {
   const s = await call('getTestSandbox');
+  if (s.none) {
+    $('#sbOut').innerHTML = '<div class="empty" style="padding:22px">🧹 테스트 업무가 없습니다 (초기화됨).<br><span class="sub">위의 <b>[테스트 메일 발송]</b>·<b>[카톡 안내문 (테스트)]</b>·<b>[보고 페이지 열어보기]</b>를 누르면 새 테스트 업무가 만들어집니다.</span></div>';
+    return;
+  }
   $('#sbOut').innerHTML = `<div class="panel" style="margin-bottom:10px"><table><thead><tr><th>테스트 작업자</th><th>진행률</th><th>상태</th><th>예상일</th><th>최근 보고</th><th>보고 링크</th></tr></thead><tbody>` +
     s.workers.map(w => `<tr><td><b>${esc(w.name)}</b></td>
       <td style="white-space:nowrap"><span class="bar"><i class="${w.status === '완료' ? 'ok' : ''}" style="width:${w.progress}%"></i></span>${w.progress}%</td>
       <td><span class="chip s-${esc(w.status)}">${esc(w.status)}</span></td><td>${esc(w.expected || '-')}</td>
       <td>${w.lastReportAt ? `<div class="sub">${esc(w.lastReportAt)}</div><div class="clip">${esc(w.lastReport)}</div>` : '<span class="sub">보고 없음</span>'}</td>
       <td class="act">${w.link ? `<button class="btn sm" data-sbopen="${esc(w.link)}">열기</button><button class="btn sm" data-sbcopy="${esc(w.link)}">복사</button>` : '<span class="sub ng-t">앱 주소 필요</span>'}</td></tr>`).join('') +
-    `</tbody></table></div><div class="sub" style="margin-bottom:6px">전체 진행률 <b>${s.progress}%</b> · ${esc(s.status)} · 마감 ${esc(s.due)} (${ddLabel(s.dday)})</div>` +
+    `</tbody></table></div><div class="sub" style="margin-bottom:6px">전체 진행률 <b>${s.progress}%</b> · ${esc(s.status)} · 마감 ${esc(s.due)} (${ddLabel(s.dday)})${s.createdAt ? ` · 생성 ${esc(s.createdAt)}` : ''}</div>` +
     (s.reports.length ? '<div class="timeline">' + s.reports.map(r => `<div class="it"><div class="h">${esc(r.at)} · <b>${esc(r.owner)}</b> · ${r.prevProgress}% → <b>${r.progress}%</b> · ${esc(r.status)}${r.expected ? ' · 예상 ' + esc(r.expected) : ''}</div><div class="c">${esc(r.content)}</div></div>`).join('') + '</div>'
       : '<div class="sub">아직 테스트 보고가 없습니다. 테스트 메일이나 [열기]로 보고 페이지에 들어가 입력해 보세요.</div>');
 }
@@ -1337,9 +1341,9 @@ $('#sbOut').addEventListener('click', e => {
 });
 $('#btnSbReload').onclick = loadSandbox;
 async function resetTestTask() {
-  if (!confirm('테스트 업무를 초기화할까요?\n\n· 테스트 업무·작업자·진행보고 기록이 삭제되고 처음 상태로 다시 만들어집니다\n· 실제 업무는 건드리지 않습니다\n· 이전에 보낸 테스트 링크는 더 이상 열리지 않습니다')) return;
+  if (!confirm('테스트 업무를 초기화할까요?\n\n· 테스트 업무·작업자·진행보고 기록이 모두 삭제되고 업무 현황에서도 사라집니다\n· 실제 업무는 건드리지 않습니다\n· 이전에 보낸 테스트 링크는 더 이상 열리지 않습니다\n· 테스트 메일·카톡 테스트를 다시 쓰면 새로 만들어집니다')) return;
   await call('resetTestSandbox');
-  toast('테스트 업무를 초기화했습니다. 새 테스트 메일·안내문을 보내세요.');
+  toast('테스트 업무를 삭제했습니다. 업무 현황에서도 사라졌습니다.');
   await loadTasks();
   if (!$('#tab-test').hidden) { await loadSandbox(); syncPvWorkers(); }
 }
@@ -1384,16 +1388,22 @@ $('#btnPv').onclick = async () => {
 $('#btnTest').onclick = async () => {
   const to = $('#testTo').value.trim(); if (!to) return toast('받을 이메일을 입력하세요.', true);
   await call('testSend', 'email', to, $('#testTask').value);
+  if ($('#testTask').value === 'TEST') refreshTestTask();
   toast('테스트 메일 발송을 요청했습니다 — 1~15분 안에 받은편지함(스팸함 포함)을 확인하세요.' + ($('#testTask').value === 'TEST' ? ' 메일의 [진행 현황 보고하기]로 입력해 보세요.' : ''));
 };
-$('#btnTestShare').onclick = () => openShare($('#testTask').value || 'TEST', null, 'request');
+/* 테스트 업무가 (다시) 만들어졌을 수 있으므로 목록·결과를 새로 고침 */
+async function refreshTestTask() { try { await loadTasks(); if (!$('#tab-test').hidden) await loadSandbox(); } catch (e) {} }
+$('#btnTestShare').onclick = async () => { await openShare($('#testTask').value || 'TEST', null, 'request'); refreshTestTask(); };
 $('#btnOpenReport').onclick = async () => {
   const id = $('#testTask').value || 'TEST';
   const tk = tasks.find(x => x.id === id);
   const wid = tk && tk.workers[0] ? tk.workers[0].id : '';
+  const win = window.open('', '_blank');          // 팝업 차단 방지: 클릭 순간에 창을 먼저 연다
   const d = await call('getShareText', id, wid, 'auto');
-  if (!d.link) return toast('앱 주소가 없어 링크를 만들 수 없습니다. 알림 설정에서 입력하세요.', true);
-  window.open(d.link, '_blank');
+  const link = d.link || (d.workers && d.workers[0] && d.workers[0].link);
+  refreshTestTask();
+  if (!link) { if (win) win.close(); return toast('앱 주소가 없어 링크를 만들 수 없습니다. 알림 설정에서 입력하세요.', true); }
+  if (win) win.location.href = link; else window.open(link, '_blank');
 };
 $('#btnRunDaily').onclick = async () => {
   if (!confirm('오늘 D-day 알림 대상 작업자에게 메일을 보낼까요?\n(오늘 이미 받은 작업자는 제외 · 발송기 다음 실행 때 처리)')) return;
@@ -1508,7 +1518,7 @@ const Demo = (() => {
   let V = [{ id:'R1', at:add(1)+' 09:00', atInput:add(1)+'T09:00', repeat:'none', repeatLabel:'반복 없음', taskId:'T2', taskTitle:'연말정산 안내문 배포', name:'미완료 작업자 전원', email:'이지은', kind:'예약 알림', subject:'', body:'', cancelOnDone:'Y', status:'대기', lastSent:'', result:'' }];
   let TB = null;
   const resetTB = () => { TB = { id:'TEST', title:'[테스트] 샘플 업무', desc:'테스트용 업무입니다.', due:add(3), expected:'', memo:'', recurId:'',
-    workers:[W('TW1','홍길동','','',0,'대기'), W('TW2','김철수','','',40,'진행중')], reports:[] }; };
+    workers:[W('TW1','홍길동','','',0,'대기'), W('TW2','김철수','','',0,'대기')], reports:[] }; };
   resetTB(); T.push(TB);
   const findT = id => T.find(x => x.id === id);
   const L = [{ at: today + ' 09:02', title:'4분기 부가세 신고 자료 취합', owner:'김민수', channel:'이메일', to:'ms.kim@example.com', kind:'마감 2일 전', mode:'자동', result:'성공', detail:'' }];
@@ -1608,9 +1618,9 @@ const Demo = (() => {
         chat:fill(cfg.chatText, v), reportUrl:link(w) };
     },
     testSend: () => [{ channel:'이메일', ok:true }],
-    getTestSandbox: () => { const t = agg(TB); return { title:t.title, due:t.due, dday:t.dday, progress:t.progress, status:t.status,
+    getTestSandbox: () => { if (!T.some(x => x.id === 'TEST')) return { none:true, workers:[], reports:[] }; const t = agg(TB); return { title:t.title, due:t.due, dday:t.dday, progress:t.progress, status:t.status,
       workers:t.workers.map(w => ({ ...w, link: 'report.html' })), reports:R.filter(r => r.taskId === 'TEST') }; },
-    resetTestSandbox: () => { T = T.filter(x => x.id !== 'TEST'); R = R.filter(r => r.taskId !== 'TEST'); resetTB(); T.push(TB); return H.getTestSandbox(); },
+    resetTestSandbox: () => { T = T.filter(x => x.id !== 'TEST'); R = R.filter(r => r.taskId !== 'TEST'); return { none:true, workers:[], reports:[] }; },
     runDaily: () => ({ targets:5, sent:3, manual:2 }),
     runReservations: () => ({ processed:0 }),
     getSettings: () => ({ ...cfg }),

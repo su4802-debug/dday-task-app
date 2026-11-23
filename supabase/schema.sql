@@ -572,7 +572,7 @@ as $$ begin
   insert into tasks(id, title, description, due, memo, is_test) values ('TEST', '[테스트] 샘플 업무',
     '테스트용 업무입니다. 입력하면 실제 데이터로 기록되며, 관리자 페이지 [테스트] 탭에서 초기화할 수 있습니다.',
     kst_today() + 3, '테스트 — 자동 알림 제외', true);
-  insert into workers(task_id, sort, name, progress, status) values ('TEST', 1, '홍길동', 0, '대기'), ('TEST', 2, '김철수', 40, '진행중');
+  insert into workers(task_id, sort, name, progress, status) values ('TEST', 1, '홍길동', 0, '대기'), ('TEST', 2, '김철수', 0, '대기');
   return 'TEST';
 end $$;
 

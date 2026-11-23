@@ -50,7 +50,7 @@
     return {
       id: t.id, title: t.title, desc: t.description, due: t.due, expected: t.expected || '', progress: t.progress, status: t.status,
       doneDate: t.done_at || '', memo: t.memo || '', recurId: t.recur_id || '', isTest: t.is_test,
-      created: DD.fmtTs(t.created_at).slice(0, 10), updated: DD.fmtTs(t.updated_at),
+      created: DD.fmtTs(t.created_at).slice(0, 10), createdAt: DD.fmtTs(t.created_at), updated: DD.fmtTs(t.updated_at),
       lastReportAt: DD.fmtTs(t.last_report_at), lastReport: t.last_report || '',
       dday: dday, risk: !!(t.expected && t.due && t.expected > t.due),
       owner: ws.map(w => w.name).join(', '), email: ws.map(w => w.email).filter(Boolean).join(', '),
@@ -133,10 +133,12 @@
   }
 
   async function getTestSandbox() {
-    const [t, c] = await Promise.all([oneTask('TEST'), cfg()]);
+    const [rows, c] = await Promise.all([q(sb.from('tasks').select('*, workers(*)').eq('id', 'TEST')), cfg()]);
+    if (!rows.length) return { none: true, workers: [], reports: [] };     // 초기화 후: 테스트 업무 없음
+    const t = mapTask(rows[0], DD.todayKst());
     const base = baseOf(c);
     return {
-      title: t.title, due: t.due, dday: t.dday, progress: t.progress, status: t.status,
+      title: t.title, due: t.due, dday: t.dday, progress: t.progress, status: t.status, createdAt: t.createdAt,
       workers: t.workers.map(w => ({ id: w.id, name: w.name, progress: w.progress, status: w.status, expected: w.expected,
         lastReportAt: w.lastReportAt, lastReport: w.lastReport, link: DD.reportUrl(base, w.token) })),
       reports: await getReports({ taskId: 'TEST', limit: 30 })
@@ -232,7 +234,14 @@
     sendReservationNow: id => rpc('admin_send_reservation', { p_id: id }),
 
     getTestSandbox,
-    resetTestSandbox: async () => { await rpc('admin_reset_test_task'); return getTestSandbox(); },
+    resetTestSandbox: async () => {
+      // 테스트 업무를 완전히 삭제 (업무 현황에서도 사라짐). 테스트 메일·카톡 테스트를 다시 쓰면 새로 만들어짐
+      await q(sb.from('reports').delete().eq('task_id', 'TEST'));
+      await q(sb.from('reservations').delete().eq('task_id', 'TEST'));
+      await q(sb.from('mail_queue').delete().eq('task_id', 'TEST').eq('status', '대기'));
+      await q(sb.from('tasks').delete().eq('id', 'TEST'));
+      return { none: true, workers: [], reports: [] };
+    },
 
     getDiagnostics: async () => {
       const [st, c, ts, tpls, rsv] = await Promise.all([rpc('admin_status'), cfg(true), allTasks(),
