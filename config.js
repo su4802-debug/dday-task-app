@@ -5,6 +5,8 @@
  *   두 값이 비어 있으면 샘플 데이터 미리보기 모드로 열립니다.
  */
 window.APP_CONFIG = {
-  SUPABASE_URL: '',
-  SUPABASE_ANON_KEY: ''
+  SUPABASE_URL: 'https://xexjxapshcizzyfbfpfa.supabase.co',
+  SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhleGp4YXBzaGNpenp5ZmJmcGZhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTU0MjEyNzAsImV4cCI6MjExMDk5NzI3MH0.fRz_ekCnO2DHO3v-d4jk7ytVNvwoHtuLTeeyuH34g4o
+
+'
 };
