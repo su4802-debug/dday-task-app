@@ -1,0 +1,1507 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>업무 D-day 관리 (관리자)</title>
+<style>
+  :root{
+    --bg:#f4f6fa; --card:#fff; --line:#e3e7ef; --text:#1c2433; --sub:#6b7487;
+    --primary:#2563eb; --pw:#e8efff;
+    --over:#d92d20; --ow:#fde8e6; --soon:#e8590c; --sw:#fff0e6; --near:#b7791f; --nw:#fdf6e3;
+    --ok:#15803d; --okw:#e7f6ec; --done:#7a8499; --dw:#eef0f4; --risk:#7c3aed;
+  }
+  *{box-sizing:border-box}
+  [hidden]{display:none!important}
+  body{margin:0;background:var(--bg);color:var(--text);font:14px/1.5 "Pretendard","Malgun Gothic","Apple SD Gothic Neo",sans-serif}
+  button,input,select,textarea{font:inherit}
+  header{background:#14213d;color:#fff;padding:13px 20px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  header h1{font-size:17px;margin:0}
+  header .today{opacity:.7;font-size:13px}
+  .sp{flex:1}
+  .btn{border:1px solid var(--line);background:#fff;color:var(--text);padding:7px 13px;border-radius:8px;cursor:pointer;white-space:nowrap}
+  .btn:hover{border-color:#b9c2d3}
+  .btn.primary{background:var(--primary);border-color:var(--primary);color:#fff}
+  .btn.gw{background:transparent;border-color:rgba(255,255,255,.35);color:#fff}
+  .btn.sm{padding:3px 8px;font-size:12px;border-radius:6px}
+  .btn.danger{color:var(--over)}
+  .btn.kakao{background:#fee500;border-color:#fee500;color:#191919;font-weight:700}
+  .btn.kakao:hover{border-color:#e0c800}
+  .btn:disabled{opacity:.4;cursor:default}
+  nav.tabs{display:flex;gap:2px;padding:0 16px;background:#fff;border-bottom:1px solid var(--line);overflow-x:auto}
+  nav.tabs button{border:0;background:none;padding:12px 13px;cursor:pointer;color:var(--sub);border-bottom:2px solid transparent;font-weight:600;white-space:nowrap}
+  nav.tabs button.on{color:var(--primary);border-color:var(--primary)}
+  main{padding:16px 20px;max-width:1480px;margin:0 auto}
+  .stats{display:grid;grid-template-columns:repeat(7,1fr);gap:9px;margin-bottom:12px}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 13px;cursor:pointer}
+  .stat.on{outline:2px solid var(--primary);border-color:transparent}
+  .stat .k{font-size:12px;color:var(--sub)} .stat .v{font-size:22px;font-weight:800}
+  .stat.over .v{color:var(--over)} .stat.soon .v{color:var(--soon)} .stat.risk .v{color:var(--risk)} .stat.nr .v{color:var(--near)} .stat.done .v{color:var(--done)}
+  .toolbar{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;align-items:center}
+  .toolbar input,.toolbar select{border:1px solid var(--line);border-radius:8px;padding:7px 10px;background:#fff}
+  .toolbar input[type=search]{min-width:220px}
+  .count{color:var(--sub);font-size:13px}
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:auto}
+  table{border-collapse:collapse;width:100%}
+  table.wide{min-width:1120px}
+  th{background:#f8f9fc;color:var(--sub);font-size:12px;font-weight:600;text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+  td{padding:9px 10px;border-bottom:1px solid #f0f2f6;vertical-align:middle}
+  tr:last-child td{border-bottom:0}
+  tr.is-done td{color:var(--done)} tr.is-done .ttl{text-decoration:line-through}
+  .sub{color:var(--sub);font-size:12px}
+  .ttl{font-weight:700;cursor:pointer} .ttl:hover{color:var(--primary)}
+  .clip{max-width:230px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .dd{display:inline-block;min-width:60px;text-align:center;padding:3px 8px;border-radius:999px;font-weight:800;font-size:12px}
+  .dd.over{background:var(--ow);color:var(--over)} .dd.soon{background:var(--sw);color:var(--soon)} .dd.near{background:var(--nw);color:var(--near)}
+  .dd.ok{background:var(--okw);color:var(--ok)} .dd.done{background:var(--dw);color:var(--done)}
+  .bar{height:7px;background:#eef1f6;border-radius:99px;overflow:hidden;width:80px;display:inline-block;vertical-align:middle;margin-right:6px}
+  .bar i{display:block;height:100%;background:var(--primary)} .bar i.ok{background:var(--ok)}
+  .chip{display:inline-block;padding:2px 8px;border-radius:6px;font-size:12px;font-weight:600;background:#eef1f6;color:#3b4456;white-space:nowrap}
+  .chip.s-진행중,.chip.s-대기예약{background:var(--pw);color:var(--primary)} .chip.s-보류{background:var(--nw);color:var(--near)}
+  .chip.s-완료,.chip.s-발송완료{background:var(--okw);color:var(--ok)} .chip.s-실패{background:var(--ow);color:var(--over)}
+  .chip.s-취소{background:var(--dw);color:var(--done)} .chip.rep{background:#fff1e7;color:#9a3412}
+  .wk{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--line);border-radius:999px;padding:1px 8px 1px 7px;margin:2px 3px 2px 0;font-size:12px;white-space:nowrap;background:#fff}
+  .wk b{font-weight:700}
+  .wk.done{background:var(--okw);border-color:#bfe5cb;color:var(--ok)}
+  .wk.nomail{border-style:dashed}
+  .wk .pct{color:var(--sub)}
+  .warn{color:var(--risk);font-weight:700;font-size:11px;margin-left:4px}
+  .chk{width:17px;height:17px;cursor:pointer;accent-color:var(--ok)}
+  .act{white-space:nowrap} .act .btn{margin-right:2px}
+  .empty{padding:36px;text-align:center;color:var(--sub)}
+  .ok-t{color:var(--ok)} .ng-t{color:var(--over)} .wa-t{color:var(--near)}
+  /* dialog */
+  dialog{border:0;border-radius:14px;padding:0;width:min(760px,95vw);box-shadow:0 20px 60px rgba(0,0,0,.25)}
+  dialog.lg{width:min(900px,96vw)} dialog.md{width:min(560px,95vw)}
+  dialog::backdrop{background:rgba(15,23,42,.45)}
+  .dh{padding:15px 20px;border-bottom:1px solid var(--line);font-weight:700;font-size:16px;display:flex;align-items:center;gap:8px}
+  .db{padding:16px 20px;display:grid;grid-template-columns:1fr 1fr;gap:12px 14px;max-height:70vh;overflow:auto}
+  .db.one{display:block}
+  .df{padding:12px 20px;border-top:1px solid var(--line);display:flex;gap:8px;justify-content:flex-end;align-items:center;flex-wrap:wrap}
+  .f{display:flex;flex-direction:column;gap:4px}
+  .f.full{grid-column:1/-1}
+  .f label,.lbl{font-size:12px;color:var(--sub);font-weight:600}
+  .f label b,.lbl b{color:var(--over)}
+  .f input,.f select,.f textarea{border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:#fff;width:100%}
+  .f textarea{min-height:66px;resize:vertical}
+  .f input:focus,.f select:focus,.f textarea:focus{outline:2px solid var(--pw);border-color:var(--primary)}
+  .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .hint{font-size:12px;color:var(--sub)}
+  .box{grid-column:1/-1;border:1px dashed #cfd6e4;border-radius:10px;padding:12px;background:#fafbfd}
+  .switch{display:flex;align-items:center;gap:8px;margin:5px 0;cursor:pointer}
+  .switch input{width:16px;height:16px;accent-color:var(--primary)}
+  /* 작업자 편집 */
+  .wedit{grid-column:1/-1;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+  .wedit .wh{display:flex;align-items:center;padding:8px 12px;background:#f8f9fc;border-bottom:1px solid var(--line);gap:8px}
+  .wedit .wh b{font-size:13px}
+  .wrow{display:grid;grid-template-columns:28px 1.1fr 1.1fr 1.6fr 96px 76px 30px;gap:6px;padding:7px 10px;align-items:center;border-bottom:1px solid #f0f2f6}
+  .wrow.nopg{grid-template-columns:28px 1.1fr 1.1fr 1.6fr 30px}
+  .wrow:last-child{border-bottom:0}
+  .wrow input,.wrow select{border:1px solid var(--line);border-radius:7px;padding:6px 8px;width:100%;background:#fff;min-width:0}
+  .wrow .no{color:var(--sub);font-size:12px;text-align:center}
+  .wrow .x{border:0;background:none;color:var(--over);cursor:pointer;font-size:16px}
+  .whead{display:grid;grid-template-columns:28px 1.1fr 1.1fr 1.6fr 96px 76px 30px;gap:6px;padding:6px 10px 0;font-size:11px;color:var(--sub);font-weight:600}
+  .whead.nopg{grid-template-columns:28px 1.1fr 1.1fr 1.6fr 30px}
+  /* layout */
+  .g2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .g-form{display:grid;grid-template-columns:380px 1fr;gap:14px;align-items:start}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:15px 17px}
+  .card h3{margin:0 0 12px;font-size:15px;display:flex;align-items:center;gap:8px}
+  .card .f{margin-bottom:10px}
+  .daychips{display:flex;gap:6px;flex-wrap:wrap}
+  .daychips label{border:1px solid var(--line);border-radius:999px;padding:4px 11px;cursor:pointer;font-size:13px;user-select:none}
+  .daychips input{display:none}
+  .daychips label:has(input:checked){border-color:var(--primary);background:var(--pw);color:var(--primary);font-weight:700}
+  .vars code{background:#f1f4f9;padding:1px 6px;border-radius:4px;margin:2px;display:inline-block;font-size:12px;cursor:pointer}
+  .timeline .it{border-left:3px solid var(--line);padding:2px 0 12px 12px;margin-left:4px}
+  .timeline .h{font-size:12px;color:var(--sub)} .timeline .c{white-space:pre-wrap}
+  .kv{display:grid;grid-template-columns:110px 1fr;gap:6px 10px;margin-bottom:14px}
+  .kv b{color:var(--sub);font-weight:600;font-size:13px}
+  .diag td:first-child{width:28px;text-align:center}
+  .grp td{background:#f8f9fc;font-weight:700;font-size:12px;color:var(--sub)}
+  .chatbox{width:100%;min-height:240px;border:0;border-radius:12px;padding:14px 16px;background:#bacee0;font:inherit;line-height:1.6;resize:vertical;color:#111}
+  .chatbox:focus{outline:2px solid #8fb0d0}
+  .smsbox{white-space:pre-wrap;background:#bacee0;border-radius:12px;padding:12px 14px;max-width:380px;font-size:13.5px}
+  iframe.mail{width:100%;height:330px;border:1px solid var(--line);border-radius:10px;background:#fff}
+  .result li{margin:5px 0}
+  dialog.xl{width:min(1100px,97vw)}
+  .person{border:1px solid var(--line);border-radius:12px;margin-bottom:14px;overflow:hidden}
+  .person .ph{display:flex;align-items:center;gap:10px;padding:10px 14px;background:#f8f9fc;border-bottom:1px solid var(--line);flex-wrap:wrap}
+  .person .ph b{font-size:15px}
+  .person table{table-layout:fixed}
+  .person table td{vertical-align:top;overflow-wrap:anywhere}
+  .person tr.done td{color:var(--done)}
+  .person tr{cursor:pointer} .person tbody tr:hover td{background:#fafbff}
+  .rep{white-space:pre-wrap;max-width:420px}
+  .tgt{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+  .tgt button{border:1px solid var(--line);background:#fff;border-radius:999px;padding:5px 12px;cursor:pointer;font-size:13px}
+  .tgt button.on{background:#191919;color:#fee500;border-color:#191919;font-weight:700}
+  .tgt button.dim{color:var(--done)}
+  #toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#1c2433;color:#fff;padding:10px 18px;border-radius:10px;opacity:0;transition:.25s;pointer-events:none;z-index:99;max-width:90vw}
+  #toast.show{opacity:1} #toast.err{background:var(--over)}
+  .loading{position:fixed;inset:0;background:rgba(255,255,255,.45);display:none;align-items:center;justify-content:center;z-index:60}
+  .loading.show{display:flex}
+  .spin{width:34px;height:34px;border:4px solid #dbe3f3;border-top-color:var(--primary);border-radius:50%;animation:s .8s linear infinite}
+  @keyframes s{to{transform:rotate(360deg)}}
+  .demo{background:#fff7d6;color:#7a5b00;text-align:center;padding:6px;font-size:12px}
+  #login{position:fixed;inset:0;background:linear-gradient(160deg,#14213d,#26407a);display:flex;align-items:center;justify-content:center;z-index:80}
+  #login form{background:#fff;border-radius:16px;padding:28px;width:min(360px,90vw)}
+  #login h2{margin:0 0 4px;font-size:19px}
+  #login input{width:100%;border:1.5px solid var(--line);border-radius:10px;padding:11px 12px;margin:16px 0 10px}
+  #login button{width:100%;padding:11px}
+  @media (max-width:1000px){
+    .stats{grid-template-columns:repeat(4,1fr)} .g2,.g-form{grid-template-columns:1fr} .db{grid-template-columns:1fr} main{padding:12px}
+    .wrow,.wrow.nopg,.whead,.whead.nopg{grid-template-columns:1fr 1fr} .whead{display:none} .wrow .no{display:none}
+  }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4"></script>
+<script src="config.js"></script>
+<script src="shared.js"></script>
+<script src="api.js"></script>
+</head>
+<body>
+<div id="demoBar" class="demo" hidden>미리보기 모드 — 샘플 데이터입니다. config.js에 Supabase 주소·키를 넣으면 실제 데이터로 동작합니다.</div>
+
+<div id="login" hidden>
+  <form id="loginForm">
+    <h2>📌 업무 D-day 관리</h2>
+    <div class="hint">관리자 계정으로 로그인하세요.</div>
+    <input type="email" id="em" placeholder="관리자 이메일" autocomplete="username" required style="margin-bottom:0">
+    <input type="password" id="pw" placeholder="비밀번호" autocomplete="current-password" required style="margin-top:8px">
+    <button class="btn primary">로그인</button>
+    <div class="hint" id="loginErr" style="color:var(--over);margin-top:8px"></div>
+  </form>
+</div>
+
+<header>
+  <h1>📌 업무 D-day 관리</h1>
+  <span class="today" id="today"></span><span class="today" id="who" style="opacity:.7"></span>
+  <span class="sp"></span>
+  <button class="btn gw" id="btnLogout">로그아웃</button>
+  <button class="btn primary" id="btnStatus">📊 보고현황</button>
+</header>
+<nav class="tabs" id="tabs">
+  <button data-tab="dash" class="on">업무 현황</button>
+  <button data-tab="recur">반복업무</button>
+  <button data-tab="reports">진행 보고</button>
+  <button data-tab="rsv">예약 메일</button>
+  <button data-tab="test">테스트</button>
+  <button data-tab="settings">알림 설정</button>
+  <button data-tab="logs">발송 로그</button>
+</nav>
+
+<main>
+<!-- ============ 업무 현황 ============ -->
+<section id="tab-dash">
+  <div class="stats" id="stats"></div>
+  <div class="toolbar">
+    <input type="search" id="q" placeholder="업무명·작업자·보고내용 검색">
+    <select id="ownerSel"><option value="">작업자 전체</option></select>
+    <select id="sortSel">
+      <option value="due">마감일 빠른순</option><option value="report">보고 오래된순</option>
+      <option value="progress">진행률 낮은순</option><option value="created">최근 등록순</option>
+    </select>
+    <span class="sp"></span><span class="count" id="count"></span>
+  </div>
+  <div class="panel"><table class="wide">
+    <thead><tr><th style="width:42px">완료</th><th>D-day</th><th>업무</th><th>작업자 (진행률)</th><th>마감 / 예상</th>
+      <th>전체</th><th>최근 보고</th><th>상태</th><th>관리</th></tr></thead>
+    <tbody id="tbody"></tbody></table></div>
+  <div class="hint" style="margin-top:8px">작업자 칩: <span class="wk"><b>이름</b><span class="pct">60%</span></span> 진행 중 · <span class="wk done"><b>이름</b>✓</span> 완료 · <span class="wk nomail"><b>이름</b></span> 점선 = 이메일 없음(카톡으로 안내)</div>
+</section>
+
+<!-- ============ 반복업무 ============ -->
+<section id="tab-recur" hidden>
+  <div class="toolbar">
+    <button class="btn primary" id="btnTplAdd">+ 반복업무 등록</button>
+    <button class="btn" id="btnPubSel" disabled>선택 일괄 발행</button>
+    <span class="hint">한 번 등록해 두고, 매 회차마다 <b>마감일·알림만 정해 [발행]</b>하면 업무가 생성되고 작업자 전원에게 요청이 나갑니다.</span>
+  </div>
+  <div class="panel"><table class="wide">
+    <thead><tr><th style="width:36px"><input type="checkbox" id="tplAll"></th><th>업무명</th><th>작업자</th><th>주기 / 기본 마감</th>
+      <th>진행 중 회차</th><th>최근 발행</th><th>발행 시 메일</th><th>관리</th></tr></thead>
+    <tbody id="tplBody"></tbody></table></div>
+</section>
+
+<!-- ============ 진행 보고 ============ -->
+<section id="tab-reports" hidden>
+  <div class="toolbar">
+    <button class="btn primary" id="btnRptAdd">+ 업무 등록</button>
+    <span class="hint">업무를 등록하면 작업자에게 보고 링크가 전달되고, 작업자가 입력한 진행 보고가 여기에 쌓입니다.</span>
+  </div>
+  <div class="toolbar">
+    <input type="search" id="rq" placeholder="업무명·작업자·내용 검색">
+    <select id="rOwner"><option value="">작업자 전체</option></select>
+    <select id="rStatus"><option value="">상태 전체</option><option>진행중</option><option>보류</option><option>완료</option></select>
+    <button class="btn" id="btnRptReload">새로고침</button>
+    <span class="sp"></span><span class="count" id="rCount"></span>
+  </div>
+  <div class="panel"><table class="wide">
+    <thead><tr><th>보고일시</th><th>업무</th><th>작업자</th><th>진행률</th><th>상태</th><th>마감예상일</th><th>보고 내용</th></tr></thead>
+    <tbody id="rBody"></tbody></table></div>
+</section>
+
+<!-- ============ 예약 메일 ============ -->
+<section id="tab-rsv" hidden>
+  <div class="g-form">
+    <form class="card" id="rsvForm" autocomplete="off">
+      <h3 id="rsvTitle">⏰ 메일 예약</h3>
+      <input type="hidden" name="id">
+      <div class="f"><label>대상 업무</label>
+        <select name="taskId" id="rsvTask"><option value="">— 업무 없이 직접 입력 —</option></select>
+        <span class="hint" id="rsvTaskHint"></span></div>
+      <div id="rsvDirect">
+        <div class="f"><label>받는 사람 이름 <b>*</b></label><input name="name"></div>
+        <div class="f"><label>받는 이메일 <b>*</b></label><input name="email" type="email"></div>
+      </div>
+      <div class="f"><label>발송 일시 <b>*</b></label><input name="at" type="datetime-local" step="300">
+        <div class="row" style="margin-top:4px">
+          <button type="button" class="btn sm" data-q="1h">+1시간</button>
+          <button type="button" class="btn sm" data-q="tm9">내일 09:00</button>
+          <button type="button" class="btn sm" data-q="tm14">내일 14:00</button>
+          <button type="button" class="btn sm" data-q="pre">마감 전날 09:00</button>
+        </div></div>
+      <div class="f"><label>반복</label>
+        <select name="repeat"><option value="none">반복 없음</option><option value="daily">매일</option><option value="weekdays">평일(월~금)</option><option value="weekly">매주</option></select></div>
+      <div class="f"><label>메일 제목 (비우면 기본 문구)</label><input name="subject"></div>
+      <div class="f"><label>메일 본문 (비우면 기본 문구 · 변수 사용 가능)</label><textarea name="body" rows="4" placeholder="예) {담당자}님, {업무명} 진행 현황을 입력해 주세요."></textarea>
+        <span class="hint">업무를 고르면 작업자마다 본인 보고 링크가 든 메일이 각각 나갑니다.</span></div>
+      <label class="switch"><input type="checkbox" name="cancelOnDone" checked>업무가 완료되면 자동 취소</label>
+      <div class="row" style="justify-content:flex-end;margin-top:8px">
+        <button type="button" class="btn" id="rsvReset">새로 작성</button>
+        <button class="btn primary">예약 저장</button></div>
+    </form>
+    <div>
+      <div class="toolbar">
+        <select id="rsvFilter"><option value="대기">대기 중</option><option value="">전체</option><option value="발송완료">발송완료</option><option value="실패">실패</option><option value="취소">취소</option></select>
+        <button class="btn" id="rsvReload">새로고침</button>
+        <span class="sp"></span><span class="count" id="rsvCount"></span>
+      </div>
+      <div class="panel"><table>
+        <thead><tr><th>발송 일시</th><th>대상</th><th>상태</th><th>최근 결과</th><th>관리</th></tr></thead>
+        <tbody id="rsvBody"></tbody></table></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 테스트 ============ -->
+<section id="tab-test" hidden>
+  <div class="g2">
+    <div class="card">
+      <h3>🩺 시스템 점검 <span class="sp"></span><button class="btn sm primary" id="btnDiag">점검 실행</button></h3>
+      <div class="hint">DB 연결·메일 발송기·대기열·앱 주소·이메일 없는 작업자를 한 번에 확인합니다.</div>
+      <div class="panel" style="margin-top:10px"><table class="diag"><tbody id="diagBody"><tr><td colspan="3" class="empty">[점검 실행]을 누르세요.</td></tr></tbody></table></div>
+    </div>
+    <div class="card">
+      <h3>📅 발송 시뮬레이션 <span class="hint">(실제 발송 없음)</span></h3>
+      <div class="row"><input type="date" id="simDate" class="btn" style="cursor:text"><button class="btn primary" id="btnSim">확인</button>
+        <button class="btn sm" data-sim="0">오늘</button><button class="btn sm" data-sim="1">내일</button><button class="btn sm" data-sim="7">1주 뒤</button></div>
+      <div id="simOut" style="margin-top:10px" class="hint">날짜를 고르면 그날 작업자별로 나갈 알림 메일과, 카톡으로 직접 안내해야 할 작업자가 표시됩니다.</div>
+    </div>
+    <div class="card">
+      <h3>👀 메시지 미리보기</h3>
+      <div class="row">
+        <select id="pvTask" class="btn" style="flex:1;min-width:180px"><option value="TEST">🧪 테스트 업무</option></select>
+        <select id="pvWorker" class="btn"><option value="">첫 작업자</option></select>
+        <select id="pvOffset" class="btn">
+          <option value="">현재 기준</option><option value="request">업무 요청(발행)</option><option value="14">D-14</option><option value="7">D-7</option>
+          <option value="3">D-3</option><option value="1">D-1</option><option value="0">D-DAY</option><option value="-1">D+1</option><option value="-3">D+3</option></select>
+        <button class="btn primary" id="btnPv">보기</button>
+      </div>
+      <div id="pvOut" style="margin-top:10px"></div>
+    </div>
+    <div class="card">
+      <h3>📨 테스트 메일</h3>
+      <div class="f"><label>받을 이메일</label><input id="testTo" type="email" placeholder="me@company.com"></div>
+      <div class="f"><label>메시지에 쓸 업무</label><select id="testTask"><option value="TEST">🧪 테스트 업무 (DB에 기록 · 초기화 가능)</option></select></div>
+      <div class="row"><button class="btn primary" id="btnTest">테스트 메일 발송</button>
+        <button class="btn kakao" id="btnTestShare">카톡 안내문 (테스트)</button>
+        <button class="btn" id="btnOpenReport">보고 페이지 열어보기</button></div>
+      <span class="hint">메일 제목 앞에 [테스트]가 붙습니다. <b>🧪 테스트 업무</b>를 고르면 메일·카톡 링크로 진행 보고를 실제로 입력해 볼 수 있고, 결과는 DB와 아래 <b>테스트 업무 보고 결과</b>에서 확인합니다.</span>
+      <hr style="border:0;border-top:1px solid var(--line);margin:16px 0">
+      <h3>▶ 수동 실행 <span class="hint">(실제 발송)</span></h3>
+      <div class="row">
+        <button class="btn" id="btnRunDaily">D-day 알림 메일 지금 실행</button>
+        <button class="btn" id="btnRunRsv">예약 메일 지금 처리</button>
+      </div>
+      <div class="hint" style="margin-top:6px">D-day 알림 메일은 같은 날 이미 보낸 작업자에게는 다시 보내지 않습니다.</div>
+    </div>
+    <div class="card" style="grid-column:1/-1">
+      <h3>🧪 테스트 업무 보고 결과 <span class="sp"></span>
+        <button class="btn sm" id="btnSbReload">새로고침</button><button class="btn sm danger" id="btnSbReset">초기화</button></h3>
+      <div class="hint" style="margin-bottom:10px">테스트 메일·카톡 안내문의 링크로 입력한 내용은 <b>실제 DB(업무·작업자·진행보고)</b>에 기록되고, 업무 현황·진행 보고 탭에도 나타납니다. 자동 알림·요약 메일에서는 제외됩니다. <b>[초기화]</b>하면 테스트 업무와 그 보고 기록만 지우고 새로 만듭니다.</div>
+      <div id="sbOut" class="hint">불러오는 중…</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 알림 설정 ============ -->
+<section id="tab-settings" hidden>
+  <form id="setForm" class="g2" autocomplete="off">
+    <div class="card">
+      <h3>⏰ 발송 시기</h3>
+      <div class="f"><label>마감 전 알림 시점</label><div class="daychips" id="dayChips"></div></div>
+      <div class="f"><label>마감 경과 후 재알림</label>
+        <select name="overdueEvery"><option value="0">보내지 않음</option><option value="1">매일</option><option value="2">2일마다</option><option value="3">3일마다</option><option value="7">7일마다</option></select></div>
+      <div class="f"><label>매일 자동 알림 시각</label><input type="time" name="sendTime" step="300" style="max-width:160px">
+        <span class="hint">GitHub 메일 발송기가 5분마다(혼잡 시 15분 내외) 확인해 지정 시각 이후 발송합니다. 특정 일시 발송은 [예약 메일] 탭을 쓰세요.</span></div>
+    </div>
+    <div class="card">
+      <h3>📨 메일 · 관리자</h3>
+      <div class="hint" style="margin-bottom:8px">자동 발송은 <b>이메일</b>로만 합니다. 카톡은 업무별 <b>[카톡]</b> 버튼으로 안내문을 복사해 직접 보냅니다.</div>
+      <div class="f"><label>보내는 사람 이름 (메일 발신자 표시)</label><input name="senderName"></div>
+      <div class="f"><label>관리자 이메일</label><input name="adminEmail" type="email" placeholder="manager@company.com"></div>
+      <label class="switch"><input type="checkbox" name="notifyOnReport"> 작업자가 진행 보고하면 관리자에게 메일</label>
+      <label class="switch"><input type="checkbox" name="notifyOnComplete"> 업무 완료(전원 완료) 시 관리자에게 메일</label>
+      <label class="switch"><input type="checkbox" name="adminDigest"> 매일 현황 요약 메일 (카톡 안내가 필요한 작업자 포함)</label>
+      <div class="f" style="margin-top:10px"><label>앱 주소 (보고 링크·카톡 안내문의 기준 주소 — 비워 두면 지금 주소 사용)</label><input name="appUrl" placeholder="https://계정.github.io/dday-task-app/">
+        <span class="hint" id="urlHint"></span></div>
+    </div>
+    <div class="card">
+      <h3>✉️ 메일 문구</h3>
+      <div class="vars hint" id="vars">변수(클릭 복사):
+        <code>{담당자}</code><code>{업무명}</code><code>{업무내용}</code><code>{마감일}</code><code>{마감예상일}</code><code>{디데이}</code><code>{진행률}</code><code>{상태}</code><code>{구분}</code><code>{작업자목록}</code><code>{전체진행률}</code><code>{보고링크}</code></div>
+      <div class="hint" style="margin-top:4px">{담당자}·{진행률}·{상태}·{보고링크}는 <b>받는 작업자 본인</b> 기준입니다.</div>
+      <div class="f" style="margin-top:8px"><label>이메일 제목</label><input name="mailSubject"></div>
+      <div class="f"><label>이메일 본문 (끝에 [진행 현황 보고하기] 버튼이 자동으로 붙음)</label><textarea name="mailBody" rows="9"></textarea></div>
+    </div>
+    <div class="card">
+      <h3>💬 카톡 안내문 문구</h3>
+      <div class="f"><label>개인용 (작업자 1명에게 보낼 때)</label><textarea name="chatText" rows="9" style="background:#eef4fa"></textarea>
+        <span class="hint">{보고링크}를 꼭 넣어 주세요.</span></div>
+      <div class="f"><label>단체방용 (공동 작업자 전원이 있는 방에 보낼 때)</label><textarea name="chatGroupText" rows="9" style="background:#eef4fa"></textarea>
+        <span class="hint"><code>{작업자별링크}</code> 자리에 "· 이름: 링크" 목록이 미완료 작업자 수만큼 들어갑니다.</span></div>
+    </div>
+    <div style="grid-column:1/-1;display:flex;justify-content:flex-end"><button class="btn primary">설정 저장</button></div>
+  </form>
+  <form class="card" id="pwForm" style="margin-top:14px;max-width:560px" autocomplete="off">
+    <h3>🔒 관리자 비밀번호 변경</h3>
+    <div class="hint" style="margin-bottom:6px">지금 로그인한 Supabase 계정의 비밀번호를 바꿉니다.</div>
+    <div class="row"><input type="password" name="old" placeholder="현재 비밀번호" class="btn" style="flex:1;cursor:text">
+      <input type="password" name="new1" placeholder="새 비밀번호 (8자 이상)" class="btn" style="flex:1;cursor:text">
+      <button class="btn">변경</button></div>
+  </form>
+  <form class="card" id="ghForm" style="margin-top:14px;max-width:760px" autocomplete="off">
+    <h3>⚡ 즉시 발송 (선택)</h3>
+    <div class="hint">등록하지 않아도 메일은 5~15분 주기로 발송됩니다. GitHub 토큰을 등록하면 저장·보고 직후 발송기를 바로 깨워 1~2분 안에 도착합니다.<br>
+      토큰: GitHub › Settings › Developer settings › <b>Fine-grained tokens</b> › 이 저장소만 선택 · 권한 <b>Actions: Read and write</b>. 저장한 토큰은 다시 볼 수 없습니다.</div>
+    <div class="row" style="margin-top:8px"><input name="repo" placeholder="계정/저장소 (예: su4802-debug/dday-task-app)" class="btn" style="flex:1;cursor:text">
+      <input type="password" name="token" placeholder="github_pat_… (비우면 유지)" class="btn" style="flex:1;cursor:text">
+      <button class="btn">저장</button> <button type="button" class="btn" id="ghClear">토큰 삭제</button></div>
+    <div class="hint" id="ghState" style="margin-top:6px"></div>
+  </form>
+</section>
+
+<!-- ============ 발송 로그 ============ -->
+<section id="tab-logs" hidden>
+  <div class="toolbar">
+    <select id="logFilter"><option value="">전체 결과</option><option value="성공">성공</option><option value="실패">실패</option></select>
+    <button class="btn" id="btnLogReload">새로고침</button>
+    <span class="sp"></span><span class="count" id="logCount"></span>
+  </div>
+  <div class="panel"><table class="wide">
+    <thead><tr><th>발송일시</th><th>업무</th><th>받는 사람</th><th>채널</th><th>수신처</th><th>구분</th><th>방식</th><th>결과</th><th>상세</th></tr></thead>
+    <tbody id="logBody"></tbody></table></div>
+</section>
+</main>
+
+<!-- 업무 등록/수정 -->
+<dialog id="taskDlg" class="lg">
+  <form id="taskForm" autocomplete="off">
+    <div class="dh"><span id="taskDlgTitle">업무 등록</span><span class="sp"></span><button type="button" class="btn sm" data-close>✕</button></div>
+    <div class="db">
+      <input type="hidden" name="id"><input type="hidden" name="recurId">
+      <div class="f full"><label>업무명 <b>*</b></label><input name="title" required maxlength="100"></div>
+      <div class="f full"><label>업무 내용</label><textarea name="desc"></textarea></div>
+      <div class="f"><label>마감일 (D-day) <b>*</b></label><input name="due" type="date" required></div>
+      <div class="f"><label>마감예상일 (작업자가 보고하면 가장 늦은 날짜로 자동 갱신)</label><input name="expected" type="date"></div>
+      <div class="wedit" id="taskWorkers"></div>
+      <div class="f full"><label>메모 (관리자용)</label><textarea name="memo" style="min-height:44px"></textarea></div>
+      <div class="box" id="recurBox">
+        <label class="switch" id="recurChk"><input type="checkbox" name="makeRecurring"><b>반복업무로 등록</b> <span class="hint">— 다음 회차부터 [반복업무] 탭에서 클릭으로 발행 (작업자 구성 그대로)</span></label>
+        <div class="row" id="recurOpts" hidden style="margin-top:6px">
+          <div class="f"><label>주기</label><select name="cycle"><option>매월</option><option>매주</option><option>수시</option></select></div>
+          <div class="f"><label id="ruleLbl">기본 마감일 (매월 N일)</label><input name="dueRule" style="width:150px"></div>
+        </div>
+        <div class="hint" id="recurLinked" hidden>🔁 반복업무에서 발행된 업무입니다.</div>
+      </div>
+      <div style="grid-column:1/-1">
+        <label class="switch"><input type="checkbox" name="notifyNow"> 저장 후 작업자에게 <b>업무 요청 이메일</b>(각자 보고 링크 포함) 바로 발송</label>
+        <label class="switch"><input type="checkbox" name="openShare"> 저장 후 <b>카톡 안내문 복사 창</b> 열기</label>
+      </div>
+    </div>
+    <div class="df"><button type="button" class="btn" data-close>취소</button><button class="btn primary">저장</button></div>
+  </form>
+</dialog>
+
+<!-- 보고현황 (개인별) -->
+<dialog id="statusDlg" class="xl">
+  <div class="dh">📊 보고현황 <span class="hint">작업자 개인별</span><span class="sp"></span><button type="button" class="btn sm" data-close>✕</button></div>
+  <div class="db one">
+    <div class="toolbar">
+      <select id="stPerson"><option value="">작업자 전체</option></select>
+      <input type="search" id="stQ" placeholder="업무명·보고내용 검색">
+      <label class="switch"><input type="checkbox" id="stDone" checked> 완료 업무 포함</label>
+      <label class="switch"><input type="checkbox" id="stTest"> 테스트 업무 포함</label>
+      <span class="sp"></span><span class="count" id="stCount"></span>
+    </div>
+    <div id="stBody"></div>
+  </div>
+  <div class="df"><span class="hint sp">행을 누르면 업무 상세(작업자별 현황·보고 이력)가 열립니다.</span>
+    <button class="btn" id="stCopy">표 복사</button><button class="btn" data-close>닫기</button></div>
+</dialog>
+
+<!-- 업무 상세 -->
+<dialog id="detailDlg" class="lg">
+  <div class="dh"><span id="dtTitle"></span><span class="sp"></span><button type="button" class="btn sm" data-close>✕</button></div>
+  <div class="db one" id="dtBody"></div>
+  <div class="df"><span class="hint sp" id="dtHint"></span>
+    <button class="btn kakao" id="dtShare">카톡 안내문</button><button class="btn" id="dtEdit">수정</button><button class="btn" data-close>닫기</button></div>
+</dialog>
+
+<!-- 카톡 안내문 -->
+<dialog id="shareDlg" class="md">
+  <div class="dh">💬 카톡 안내문<span class="sp"></span><button type="button" class="btn sm" data-close>✕</button></div>
+  <div class="db one">
+    <div class="lbl" style="margin-bottom:6px">누구에게 보낼까요?</div>
+    <div class="tgt" id="shTargets"></div>
+    <div class="row" style="margin-bottom:8px">
+      <select id="shMode" class="btn"><option value="auto">현재 D-day 기준</option><option value="request">업무 요청</option><option value="check">진행 확인 요청</option></select>
+      <span class="hint" id="shWho"></span>
+    </div>
+    <textarea class="chatbox" id="shText"></textarea>
+    <div class="hint" style="margin-top:6px">내용은 보내기 전에 여기서 고쳐도 됩니다. 복사한 뒤 카톡 대화방에 붙여 넣으세요.</div>
+    <div class="row" id="shLinkRow" style="margin-top:10px"><span class="lbl">보고 링크</span><input id="shLink" class="btn" style="flex:1;cursor:text;font-size:12px" readonly></div>
+  </div>
+  <div class="df">
+    <button class="btn" id="shCopyLink">링크만 복사</button>
+    <button class="btn" id="shNative" hidden>휴대폰 공유…</button>
+    <button class="btn kakao" id="shCopy">안내문 복사</button>
+  </div>
+</dialog>
+
+<!-- 반복업무 등록/수정 -->
+<dialog id="tplDlg" class="lg">
+  <form id="tplForm" autocomplete="off">
+    <div class="dh"><span id="tplDlgTitle">반복업무 등록</span><span class="sp"></span><button type="button" class="btn sm" data-close>✕</button></div>
+    <div class="db">
+      <input type="hidden" name="id">
+      <div class="f full"><label>업무명 <b>*</b></label><input name="title" required placeholder="예) 월말 급여대장 검토"></div>
+      <div class="f full"><label>업무 내용</label><textarea name="desc"></textarea></div>
+      <div class="wedit" id="tplWorkers"></div>
+      <div class="f"><label>주기</label><select name="cycle"><option>매월</option><option>매주</option><option>수시</option></select></div>
+      <div class="f"><label id="tplRuleLbl">기본 마감일 (매월 N일)</label><input name="dueRule"><span class="hint" id="tplRuleHint"></span></div>
+      <div class="f"><label>발행 시 메일 기본값</label><select name="alarm"><option value="now">발행 즉시 업무 요청 메일</option><option value="none">메일 안 보냄 (카톡으로 안내)</option></select></div>
+      <div class="f"><label>메모</label><input name="memo"></div>
+    </div>
+    <div class="df"><button type="button" class="btn" data-close>취소</button><button class="btn primary">저장</button></div>
+  </form>
+</dialog>
+
+<!-- 반복업무 발행 -->
+<dialog id="pubDlg" class="lg">
+  <form id="pubForm" autocomplete="off">
+    <div class="dh">🚀 반복업무 발행<span class="sp"></span><button type="button" class="btn sm" data-close>✕</button></div>
+    <div class="db one">
+      <div class="hint" style="margin-bottom:8px">마감일과 알림만 확인하고 [발행]을 누르면 업무가 생성되고, 작업자마다 본인 보고 링크가 담긴 요청이 나갑니다.</div>
+      <div class="row" style="margin-bottom:10px"><span class="lbl">마감일 일괄 적용</span><input type="date" id="pubAllDue" class="btn" style="cursor:text"><button type="button" class="btn sm" id="pubApply">적용</button></div>
+      <div class="panel"><table><thead><tr><th>업무명 (이번 회차)</th><th>작업자</th><th style="width:170px">마감일</th></tr></thead><tbody id="pubBody"></tbody></table></div>
+      <div class="f" style="margin-top:14px"><label>메일</label>
+        <div class="row">
+          <label class="switch"><input type="radio" name="alarm" value="now" checked> 지금 업무 요청 메일</label>
+          <label class="switch"><input type="radio" name="alarm" value="at"> 메일 예약</label>
+          <input type="datetime-local" name="at" step="300" class="btn" style="cursor:text;width:auto" disabled>
+          <label class="switch"><input type="radio" name="alarm" value="none"> 메일 안 보냄</label>
+        </div>
+        <span class="hint">이메일이 없는 작업자는 발행 후 결과 옆 <b>[카톡]</b> 버튼으로 안내문을 복사해 보내세요. 이후 D-day 알림 메일은 자동으로 이어집니다.</span>
+      </div>
+      <ul class="result" id="pubResult" hidden></ul>
+    </div>
+    <div class="df"><button type="button" class="btn" data-close>닫기</button><button class="btn primary" id="pubGo">발행</button></div>
+  </form>
+</dialog>
+
+<datalist id="ownerList"></datalist>
+<div class="loading" id="loading"><div class="spin"></div></div>
+<div id="toast"></div>
+
+<script>
+/* ================= 공통 ================= */
+const HAS_GAS = !!(window.AdminAPI && AdminAPI.READY);   // Supabase 연결 설정이 있으면 실제 모드
+const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const ddLabel = d => d === null || d === undefined ? '-' : d > 0 ? 'D-' + d : d === 0 ? 'D-DAY' : 'D+' + (-d);
+const pad = n => String(n).padStart(2, '0');
+const ymd = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const dtLocal = d => `${ymd(d)}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+const daysAgo = s => s ? Math.floor((Date.now() - new Date(s.replace(' ', 'T'))) / 864e5) : null;
+
+function api(fn, ...args) {
+  if (!HAS_GAS) return Demo.call(fn, args);
+  return AdminAPI.call(fn, args);
+}
+async function call(fn, ...args) {
+  $('#loading').classList.add('show');
+  try { return await api(fn, ...args); }
+  catch (e) {
+    const m = (e && e.message) || String(e);
+    if (m.indexOf('AUTH') >= 0) showLogin(m.replace(/^.*AUTH:\s*/, ''));
+    else toast(m, true);
+    throw e;
+  } finally { $('#loading').classList.remove('show'); }
+}
+let tT;
+function toast(m, err) { const t = $('#toast'); t.textContent = m; t.className = 'show' + (err ? ' err' : ''); clearTimeout(tT); tT = setTimeout(() => t.className = '', err ? 5500 : 2800); }
+
+/** 복사 — 브라우저 권한이 막혀도 동작하도록 3단계 */
+async function copyText(text, msg) {
+  try { await navigator.clipboard.writeText(text); toast(msg || '복사했습니다.'); return; } catch (e) {}
+  const ta = document.createElement('textarea');
+  ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.select();
+  let ok = false; try { ok = document.execCommand('copy'); } catch (e) {}
+  ta.remove();
+  if (ok) toast(msg || '복사했습니다.'); else prompt('Ctrl+C로 복사하세요:', text);
+}
+$$('dialog [data-close]').forEach(b => b.onclick = () => b.closest('dialog').close());
+
+/* ================= 로그인 ================= */
+function showLogin(msg) { $('#login').hidden = false; $('#loginErr').textContent = msg || ''; $('#pw').value = ''; setTimeout(() => ($('#em').value ? $('#pw') : $('#em')).focus(), 50); }
+$('#loginForm').onsubmit = async e => {
+  e.preventDefault();
+  const b = e.target.querySelector('button'); b.disabled = true;
+  try {
+    const em = await AdminAPI.Auth.login($('#em').value, $('#pw').value);
+    try { localStorage.setItem('dday-last-email', em); } catch (_) {}
+    $('#login').hidden = true; $('#who').textContent = em; boot();
+  } catch (err) { $('#loginErr').textContent = err.message || err; }
+  finally { b.disabled = false; }
+};
+$('#btnLogout').onclick = async () => { if (HAS_GAS) await AdminAPI.Auth.logout(); showLogin(''); };
+
+/* ================= 탭 ================= */
+const loaders = { dash: loadTasks, recur: loadTpls, reports: loadReports, rsv: loadRsv, test: loadTest, settings: loadSettings, logs: loadLogs };
+function go(tab) {
+  $$('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === tab));
+  Object.keys(loaders).forEach(k => $('#tab-' + k).hidden = k !== tab);
+  loaders[tab]();
+}
+$$('#tabs button').forEach(b => b.onclick = () => go(b.dataset.tab));
+
+/* ================= 작업자 편집기 (업무·반복업무 공용) ================= */
+const STATUSES = ['대기', '진행중', '보류', '완료'];
+function renderWorkerEditor(box, list, withProgress) {
+  box.dataset.pg = withProgress ? '1' : '';
+  const cls = withProgress ? '' : 'nopg';
+  box.innerHTML = `<div class="wh"><b>👥 작업자</b><span class="hint">공동 작업이면 여러 명 추가 — 각자 본인 링크로 결과를 입력합니다</span><span class="sp"></span>
+      <button type="button" class="btn sm primary" data-wadd>+ 작업자 추가</button></div>
+    <div class="whead ${cls}"><span></span><span>이름 *</span><span>전화번호</span><span>이메일 (없으면 카톡 안내)</span>${withProgress ? '<span>상태</span><span>진행률</span>' : ''}<span></span></div>
+    <div data-wlist></div>`;
+  const wl = box.querySelector('[data-wlist]');
+  (list && list.length ? list : [{}]).forEach(w => addWorkerRow(box, w));
+  box.querySelector('[data-wadd]').onclick = () => { addWorkerRow(box, {}); const ins = wl.querySelectorAll('[data-k=name]'); ins[ins.length - 1].focus(); };
+}
+function addWorkerRow(box, w) {
+  const pg = !!box.dataset.pg;
+  const wl = box.querySelector('[data-wlist]');
+  const r = document.createElement('div');
+  r.className = 'wrow' + (pg ? '' : ' nopg');
+  r.dataset.id = w.id || '';
+  r.innerHTML = `<span class="no"></span>
+    <input data-k="name" placeholder="이름" value="${esc(w.name || '')}" list="ownerList">
+    <input data-k="phone" placeholder="010-0000-0000" inputmode="tel" value="${esc(w.phone || '')}">
+    <input data-k="email" type="email" placeholder="name@company.com" value="${esc(w.email || '')}">
+    ${pg ? `<select data-k="status">${STATUSES.map(s => `<option${s === (w.status || '대기') ? ' selected' : ''}>${s}</option>`).join('')}</select>
+      <input data-k="progress" type="number" min="0" max="100" step="5" value="${w.progress ?? 0}">` : ''}
+    <button type="button" class="x" title="작업자 삭제">✕</button>`;
+  r.querySelector('.x').onclick = () => {
+    if (wl.children.length === 1) return toast('작업자는 최소 1명이어야 합니다.', true);
+    if (r.dataset.id && !confirm(`${r.querySelector('[data-k=name]').value || '이 작업자'}를 업무에서 뺄까요?\n저장하면 이 작업자의 보고 링크는 더 이상 열리지 않습니다.`)) return;
+    r.remove(); renumber(wl);
+  };
+  if (pg) {
+    r.querySelector('[data-k=status]').onchange = e => { if (e.target.value === '완료') r.querySelector('[data-k=progress]').value = 100; };
+  }
+  // 등록된 이름을 고르면 연락처 자동 채움
+  r.querySelector('[data-k=name]').addEventListener('change', e => {
+    const known = KNOWN[e.target.value.trim()];
+    if (known) {
+      const ph = r.querySelector('[data-k=phone]'), em = r.querySelector('[data-k=email]');
+      if (!ph.value) ph.value = known.phone || ''; if (!em.value) em.value = known.email || '';
+    }
+  });
+  wl.appendChild(r); renumber(wl);
+}
+function renumber(wl) { [...wl.children].forEach((r, i) => r.querySelector('.no').textContent = i + 1); }
+function readWorkers(box) {
+  return [...box.querySelectorAll('.wrow')].map(r => {
+    const g = k => { const el = r.querySelector(`[data-k=${k}]`); return el ? el.value.trim() : undefined; };
+    return { id: r.dataset.id, name: g('name'), phone: g('phone'), email: g('email'), status: g('status'), progress: g('progress') };
+  }).filter(w => w.name);
+}
+let KNOWN = {};   // 이름 → {phone, email} (작업자 이름 자동완성)
+
+/* ================= 업무 현황 ================= */
+let tasks = [], filter = 'open';
+const isOpen = t => t.status !== '완료';
+const staleWorker = t => t.workers.some(w => w.status !== '완료' && (!w.lastReportAt || daysAgo(w.lastReportAt) >= 7));
+const FILTERS = [
+  { k: 'all', label: '전체', f: t => true },
+  { k: 'open', label: '진행 중', f: isOpen },
+  { k: 'soon', label: '마감 임박 (D-3)', cls: 'soon', f: t => isOpen(t) && t.dday !== null && t.dday >= 0 && t.dday <= 3 },
+  { k: 'over', label: '마감 경과', cls: 'over', f: t => isOpen(t) && t.dday !== null && t.dday < 0 },
+  { k: 'risk', label: '지연 위험', cls: 'risk', f: t => isOpen(t) && t.risk },
+  { k: 'nr', label: '7일간 미보고 작업자', cls: 'nr', f: t => isOpen(t) && staleWorker(t) },
+  { k: 'done', label: '완료', cls: 'done', f: t => !isOpen(t) }
+];
+function ddClass(t) {
+  if (!isOpen(t)) return 'done'; if (t.dday === null) return '';
+  return t.dday < 0 ? 'over' : t.dday <= 3 ? 'soon' : t.dday <= 7 ? 'near' : 'ok';
+}
+function wkChip(w) {
+  const done = w.status === '완료';
+  return `<span class="wk ${done ? 'done' : ''} ${w.email ? '' : 'nomail'}" title="${esc(w.name)} · ${esc(w.status)}${w.email ? '' : ' · 이메일 없음'}${w.lastReportAt ? ' · 보고 ' + esc(w.lastReportAt) : ''}"><b>${esc(w.name)}</b>${done ? '✓' : `<span class="pct">${w.progress}%</span>`}</span>`;
+}
+async function loadTasks() {
+  const res = await call('getTasks');
+  if (!Array.isArray(res)) { toast('업무 목록을 불러오지 못했습니다. Code.gs가 최신인지 확인하고 새 버전으로 다시 배포하세요.', true); throw new Error('getTasks 응답 없음'); }
+  tasks = res;
+  KNOWN = {};
+  tasks.forEach(t => t.workers.forEach(w => { if (!KNOWN[w.name] || w.email) KNOWN[w.name] = { phone: w.phone, email: w.email }; }));
+  const names = Object.keys(KNOWN).sort();
+  fillOwners('#ownerSel', names);
+  $('#ownerList').innerHTML = names.map(o => `<option value="${esc(o)}">`).join('');
+  renderTasks();
+}
+function fillOwners(sel, owners) {
+  const el = $(sel), cur = el.value;
+  el.innerHTML = '<option value="">작업자 전체</option>' + owners.map(o => `<option${o === cur ? ' selected' : ''}>${esc(o)}</option>`).join('');
+}
+function taskOptions(onlyOpen) {
+  return tasks.filter(t => t.id !== 'TEST' && (!onlyOpen || isOpen(t))).sort((a, b) => (a.due || '').localeCompare(b.due || ''))
+    .map(t => `<option value="${esc(t.id)}">${esc(t.title)} · ${esc(t.workers.map(w => w.name).join(', '))} (${ddLabel(t.dday)})</option>`).join('');
+}
+function renderTasks() {
+  $('#stats').innerHTML = FILTERS.map(F => `<div class="stat ${F.cls || ''} ${filter === F.k ? 'on' : ''}" data-f="${F.k}">
+    <div class="k">${F.label}</div><div class="v">${tasks.filter(F.f).length}</div></div>`).join('');
+  const q = $('#q').value.trim().toLowerCase(), owner = $('#ownerSel').value, sort = $('#sortSel').value;
+  const list = tasks.filter(FILTERS.find(F => F.k === filter).f)
+    .filter(t => !owner || t.workers.some(w => w.name === owner))
+    .filter(t => !q || [t.title, t.desc, t.memo, t.lastReport, ...t.workers.map(w => w.name + ' ' + w.lastReport)].join(' ').toLowerCase().includes(q));
+  list.sort((a, b) => {
+    if (sort === 'progress') return a.progress - b.progress;
+    if (sort === 'created') return (b.created || '').localeCompare(a.created || '');
+    if (sort === 'report') return (a.lastReportAt || '0').localeCompare(b.lastReportAt || '0');
+    const v = t => !isOpen(t) ? 1e6 : (t.dday ?? 1e5);
+    return v(a) - v(b);
+  });
+  $('#count').textContent = list.length + '건';
+  $('#tbody').innerHTML = !list.length ? `<tr><td colspan="9" class="empty">${tasks.length ? '조건에 맞는 업무가 없습니다.' : '등록된 업무가 없습니다. [+ 업무 등록]으로 시작하세요.'}</td></tr>` :
+    list.map(t => {
+      const done = !isOpen(t), ago = daysAgo(t.lastReportAt);
+      const hasMail = t.workers.some(w => w.email && w.status !== '완료');
+      return `<tr class="${done ? 'is-done' : ''}" data-id="${esc(t.id)}">
+      <td><input type="checkbox" class="chk" data-act="done" ${done ? 'checked' : ''} title="전원 완료 처리"></td>
+      <td><span class="dd ${ddClass(t)}">${done ? '완료' : ddLabel(t.dday)}</span></td>
+      <td><span class="ttl" data-act="detail">${esc(t.title)}</span> ${t.recurId ? '<span class="chip rep">반복</span>' : ''}${t.id === 'TEST' ? '<span class="chip" style="background:#fef3c7;color:#92400e">🧪 테스트 · 자동알림 제외</span>' : ''}
+        ${t.desc ? `<div class="sub clip">${esc(t.desc)}</div>` : ''}</td>
+      <td style="max-width:300px">${t.workers.map(wkChip).join('')}${t.workers.length > 1 ? `<div class="sub">완료 ${t.workers.filter(w => w.status === '완료').length}/${t.workers.length}명</div>` : ''}</td>
+      <td>${esc(t.due)}<div class="sub">예상 ${esc(t.expected || '-')}${t.risk && !done ? '<span class="warn">▲지연위험</span>' : ''}</div></td>
+      <td style="white-space:nowrap"><span class="bar"><i class="${done ? 'ok' : ''}" style="width:${t.progress}%"></i></span>${t.progress}%</td>
+      <td>${t.lastReportAt ? `<div class="sub ${ago >= 7 && !done ? 'wa-t' : ''}">${esc(t.lastReportAt.slice(5))}${ago !== null ? ` (${ago ? ago + '일 전' : '오늘'})` : ''}</div><div class="clip">${esc(t.lastReport)}</div>` : '<span class="sub">보고 없음</span>'}</td>
+      <td><span class="chip s-${esc(t.status)}">${esc(t.status)}</span></td>
+      <td class="act"><button class="btn sm kakao" data-act="share">카톡</button><button class="btn sm" data-act="notify" ${done || !hasMail ? 'disabled' : ''} title="${hasMail ? '미완료 작업자에게 지금 메일' : '메일 받을 작업자 없음'}">메일</button><button class="btn sm" data-act="edit">수정</button><button class="btn sm" data-act="rsv" ${done || !hasMail ? 'disabled' : ''}>예약</button>${t.id === 'TEST' ? '<button class="btn sm danger" data-act="reset">초기화</button>' : '<button class="btn sm danger" data-act="del">삭제</button>'}</td></tr>`;
+    }).join('');
+}
+$('#stats').onclick = e => { const s = e.target.closest('.stat'); if (s) { filter = s.dataset.f; renderTasks(); } };
+['#q', '#ownerSel', '#sortSel'].forEach(s => $(s).addEventListener('input', renderTasks));
+$('#tbody').addEventListener('click', async e => {
+  const el = e.target.closest('[data-act]'); if (!el) return;
+  const id = el.closest('tr').dataset.id, t = tasks.find(x => x.id === id), act = el.dataset.act;
+  if (act === 'done') {
+    const on = el.checked;
+    if (on && !confirm(`"${t.title}"를 작업자 전원 완료로 처리할까요?\n자동 알림이 모두 중지됩니다.`)) { el.checked = false; return; }
+    try { await call('completeTask', id, on); toast(on ? '전원 완료 처리했습니다.' : '완료를 해제했습니다.'); } catch (_) {}
+    loadTasks();
+  } else if (act === 'edit') openTask(t);
+  else if (act === 'detail') openDetail(t);
+  else if (act === 'notify') {
+    const tg = t.workers.filter(w => w.email && w.status !== '완료');
+    if (!confirm(`미완료 작업자 ${tg.length}명(${tg.map(w => w.name).join(', ')})에게 지금 알림 메일을 보낼까요?\n각자 본인 보고 링크가 들어갑니다.`)) return;
+    const res = await call('sendNow', id);
+    toast(res.map(r => `${r.name} ${r.ok ? '발송 요청' : '실패'}`).join(' · ') + ' — 1~15분 안에 도착합니다', res.some(r => !r.ok));
+  } else if (act === 'share') openShare(id);
+  else if (act === 'rsv') { go('rsv'); setTimeout(() => rsvPrefill(id), 300); }
+  else if (act === 'reset') resetTestTask();
+  else if (act === 'del') {
+    if (!confirm(`"${t.title}" 업무를 삭제할까요?\n작업자 ${t.workers.length}명의 보고 링크도 모두 사라집니다. 되돌릴 수 없습니다.`)) return;
+    await call('deleteTask', id); toast('삭제했습니다.'); loadTasks();
+  }
+});
+
+/* 업무 등록/수정 */
+const taskDlg = $('#taskDlg'), taskForm = $('#taskForm');
+
+function openTask(t) {
+  taskForm.reset();
+  $('#taskDlgTitle').textContent = t ? '업무 수정' : '업무 등록';
+  const v = t || {};
+  ['id','recurId','title','desc','due','expected','memo'].forEach(k => taskForm.elements[k].value = v[k] ?? '');
+  renderWorkerEditor($('#taskWorkers'), t ? t.workers : [], true);
+  $('#recurOpts').hidden = true;
+  $('#recurChk').hidden = !!(t && t.recurId);
+  $('#recurLinked').hidden = !(t && t.recurId);
+  if (!t) taskForm.elements.openShare.checked = true;
+  syncTaskForm(); taskDlg.showModal(); taskForm.elements.title.focus();
+}
+function ruleLabel(cycle) { return cycle === '매월' ? '기본 마감일 (매월 N일, 말일=31)' : cycle === '매주' ? '기본 마감 요일 (1=월 … 7=일)' : '기본 마감 (발행 후 N일)'; }
+function syncTaskForm() {
+  const f = taskForm.elements;
+  $('#recurOpts').hidden = !f.makeRecurring.checked;
+  $('#ruleLbl').textContent = ruleLabel(f.cycle.value);
+  if (f.makeRecurring.checked && !f.dueRule.value && f.due.value) {
+    const d = new Date(f.due.value);
+    f.dueRule.value = f.cycle.value === '매월' ? d.getDate() : f.cycle.value === '매주' ? (d.getDay() || 7) : 7;
+  }
+}
+taskForm.addEventListener('input', e => { if (e.target.name === 'cycle') taskForm.elements.dueRule.value = ''; syncTaskForm(); });
+taskForm.onsubmit = async e => {
+  e.preventDefault();
+  const f = taskForm.elements;
+  const d = { id: f.id.value, recurId: f.recurId.value, title: f.title.value.trim(), desc: f.desc.value, due: f.due.value,
+    expected: f.expected.value, memo: f.memo.value, workers: readWorkers($('#taskWorkers')),
+    makeRecurring: f.makeRecurring.checked ? 'Y' : 'N', cycle: f.cycle.value, dueRule: f.dueRule.value,
+    notifyNow: f.notifyNow.checked ? 'Y' : 'N' };
+  if (!d.workers.length) return toast('작업자를 한 명 이상 입력하세요.', true);
+  const wantShare = f.openShare.checked;
+  if (d.notifyNow === 'Y' && !d.workers.some(w => w.email)) toast('이메일 있는 작업자가 없어 메일은 보내지 않습니다. 카톡 안내문을 이용하세요.', true);
+  const r = await call('saveTask', d);
+  taskDlg.close();
+  let msg = '저장했습니다.';
+  if (d.makeRecurring === 'Y' && r.recurId) msg += ' 반복업무에도 등록했습니다.';
+  if (r.notify) msg += ' 요청 메일: ' + r.notify.map(x => x.ok ? x.name + ' 발송 요청' : (x.name ? x.name + ' 실패' : x.error)).join(', ');
+  toast(msg, r.notify && r.notify.some(x => !x.ok));
+  await loadTasks();
+  if (wantShare) openShare(r.id, null, d.id ? 'auto' : 'request');
+};
+
+/* 업무 상세 — 작업자별 현황 + 보고 이력 */
+let detailTask = null;
+async function openDetail(t) {
+  detailTask = t;
+  $('#dtTitle').textContent = t.title;
+  const reps = await call('getReports', { taskId: t.id, limit: 60 });
+  $('#dtBody').innerHTML = `<div class="kv">
+      <b>마감일</b><span>${esc(t.due)} <span class="dd ${ddClass(t)}">${isOpen(t) ? ddLabel(t.dday) : '완료'}</span></span>
+      <b>마감예상일</b><span>${esc(t.expected || '-')} ${t.risk && isOpen(t) ? '<span class="warn">▲지연위험</span>' : ''}</span>
+      <b>전체 진행률</b><span><span class="bar"><i style="width:${t.progress}%"></i></span>${t.progress}% · ${esc(t.status)} · 완료 ${t.workers.filter(w => w.status === '완료').length}/${t.workers.length}명</span>
+      ${t.desc ? `<b>업무 내용</b><span style="white-space:pre-wrap">${esc(t.desc)}</span>` : ''}
+      ${t.memo ? `<b>메모</b><span>${esc(t.memo)}</span>` : ''}
+    </div>
+    <h3 style="font-size:15px;margin:0 0 8px">👥 작업자별 현황</h3>
+    <div class="panel" style="margin-bottom:16px"><table><thead><tr><th>작업자</th><th>진행률</th><th>상태</th><th>예상일</th><th>최근 보고</th><th></th></tr></thead><tbody>
+    ${t.workers.map(w => `<tr data-w="${esc(w.id)}">
+      <td><b>${esc(w.name)}</b><div class="sub">${esc(w.phone || '-')} · ${w.email ? esc(w.email) : '<span class="wa-t">이메일 없음</span>'}</div></td>
+      <td style="white-space:nowrap"><span class="bar"><i class="${w.status === '완료' ? 'ok' : ''}" style="width:${w.progress}%"></i></span>${w.progress}%</td>
+      <td><span class="chip s-${esc(w.status)}">${esc(w.status)}</span></td>
+      <td>${esc(w.expected || '-')}</td>
+      <td>${w.lastReportAt ? `<div class="sub">${esc(w.lastReportAt)}</div><div class="clip">${esc(w.lastReport)}</div>` : '<span class="sub">보고 없음</span>'}</td>
+      <td class="act"><button class="btn sm kakao" data-wact="share">카톡</button><button class="btn sm" data-wact="mail" ${w.email && w.status !== '완료' ? '' : 'disabled'}>메일</button>
+        <button class="btn sm" data-wact="${w.status === '완료' ? 'undo' : 'done'}">${w.status === '완료' ? '완료 해제' : '완료'}</button></td></tr>`).join('')}
+    </tbody></table></div>
+    <h3 style="font-size:15px;margin:0 0 10px">📝 진행 보고 이력 (${reps.length}건)</h3>
+    <div class="timeline">${reps.length ? reps.map(r => `<div class="it"><div class="h">${esc(r.at)} · <b>${esc(r.owner)}</b> · ${r.prevProgress}% → <b>${r.progress}%</b> · ${esc(r.status)}${r.expected ? ' · 예상 ' + esc(r.expected) : ''}</div><div class="c">${esc(r.content)}</div></div>`).join('') : '<div class="hint">아직 보고가 없습니다.</div>'}</div>`;
+  $('#dtHint').textContent = t.updated ? '최종 수정 ' + t.updated : '';
+  if (!$('#detailDlg').open) $('#detailDlg').showModal();
+}
+$('#dtBody').addEventListener('click', async e => {
+  const b = e.target.closest('[data-wact]'); if (!b) return;
+  const wid = b.closest('tr').dataset.w, w = detailTask.workers.find(x => x.id === wid), act = b.dataset.wact;
+  if (act === 'share') { openShare(detailTask.id, wid); return; }
+  if (act === 'mail') {
+    if (!confirm(`${w.name}님(${w.email})에게 지금 알림 메일을 보낼까요?`)) return;
+    const r = await call('sendNow', detailTask.id, '', wid);
+    toast(r[0].ok ? `${w.name}님에게 메일 발송을 요청했습니다 (1~15분 안에 도착).` : '발송 실패: ' + r[0].error, !r[0].ok); return;
+  }
+  const done = act === 'done';
+  if (done && !confirm(`${w.name}님의 작업을 완료 처리할까요?`)) return;
+  await call('completeTask', detailTask.id, done, wid);
+  await loadTasks();
+  const nt = tasks.find(x => x.id === detailTask.id); if (nt) openDetail(nt);
+});
+$('#dtShare').onclick = () => openShare(detailTask.id);
+$('#dtEdit').onclick = () => { $('#detailDlg').close(); openTask(detailTask); };
+
+/* ================= 보고현황 (개인별) ================= */
+function statusRows() {
+  const showDone = $('#stDone').checked, showTest = $('#stTest').checked, q = $('#stQ').value.trim().toLowerCase();
+  const map = {};
+  tasks.forEach(t => {
+    if (t.id === 'TEST' && !showTest) return;
+    t.workers.forEach(w => {
+      const done = w.status === '완료' || t.status === '완료';
+      if (done && !showDone) return;
+      if (q && ![t.title, w.lastReport].join(' ').toLowerCase().includes(q)) return;
+      (map[w.name] = map[w.name] || []).push({ t, w, done });
+    });
+  });
+  Object.values(map).forEach(list => list.sort((a, b) => (a.done - b.done) || ((a.t.dday ?? 1e5) - (b.t.dday ?? 1e5))));
+  return map;
+}
+function renderStatus() {
+  const map = statusRows(), sel = $('#stPerson').value;
+  const names = Object.keys(map).sort();
+  const cur = sel;
+  $('#stPerson').innerHTML = '<option value="">작업자 전체</option>' + names.map(n => `<option${n === cur ? ' selected' : ''}>${esc(n)}</option>`).join('');
+  const show = names.filter(n => !sel || n === sel);
+  let rowsN = 0;
+  $('#stBody').innerHTML = show.length ? show.map(n => {
+    const list = map[n], open = list.filter(x => !x.done), done = list.length - open.length;
+    const avg = open.length ? Math.round(open.reduce((s, x) => s + x.w.progress, 0) / open.length) : 100;
+    const over = open.filter(x => x.t.dday !== null && x.t.dday < 0).length;
+    rowsN += list.length;
+    return `<div class="person"><div class="ph"><b>👤 ${esc(n)}</b>
+        <span class="chip s-진행중">진행 ${open.length}</span><span class="chip s-완료">완료 ${done}</span>
+        ${over ? `<span class="chip s-실패">마감 경과 ${over}</span>` : ''}
+        <span class="sub">진행 중 평균 ${avg}%</span></div>
+      <table><thead><tr><th style="width:90px">D-Day</th><th style="width:30%">업무명</th><th style="width:110px">마감일</th><th style="width:160px">진행률</th><th>최근 보고</th></tr></thead><tbody>
+      ${list.map(x => `<tr class="${x.done ? 'done' : ''}" data-open="${esc(x.t.id)}">
+        <td><span class="dd ${x.done ? 'done' : ddClass(x.t)}">${ddLabel(x.t.dday)}</span></td>
+        <td><b>${esc(x.t.title)}</b> ${x.done ? '<span class="chip s-완료">완료</span>' : ''}${x.t.workers.length > 1 ? `<div class="sub">공동: ${esc(x.t.workers.filter(o => o.name !== n).map(o => o.name).join(', '))}</div>` : ''}</td>
+        <td>${esc(x.t.due)}</td>
+        <td style="white-space:nowrap"><span class="bar"><i class="${x.done ? 'ok' : ''}" style="width:${x.w.progress}%"></i></span>${x.w.progress}%</td>
+        <td>${x.w.lastReportAt ? `<div class="sub">${esc(x.w.lastReportAt)}</div><div class="rep">${esc(x.w.lastReport)}</div>` : '<span class="sub">보고 없음</span>'}</td></tr>`).join('')}
+      </tbody></table></div>`;
+  }).join('') : '<div class="empty">표시할 업무가 없습니다.</div>';
+  $('#stCount').textContent = `작업자 ${show.length}명 · ${rowsN}건`;
+}
+async function openStatus() {
+  $('#stBody').innerHTML = '<div class="empty">불러오는 중…</div>';
+  if (!$('#statusDlg').open) $('#statusDlg').showModal();     // 창을 먼저 열고 데이터를 채움
+  try { await loadTasks(); renderStatus(); }
+  catch (e) { $('#stBody').innerHTML = '<div class="empty ng-t">보고현황을 불러오지 못했습니다: ' + esc((e && e.message) || e) + '</div>'; }
+}
+$('#btnStatus').onclick = openStatus;
+['#stPerson', '#stQ', '#stDone', '#stTest'].forEach(s => $(s).addEventListener('input', renderStatus));
+$('#stBody').addEventListener('click', e => {
+  const r = e.target.closest('[data-open]'); if (!r) return;
+  const t = tasks.find(x => x.id === r.dataset.open);
+  if (t) { $('#statusDlg').close(); openDetail(t); }
+});
+$('#stCopy').onclick = () => {
+  const map = statusRows(), sel = $('#stPerson').value;
+  const lines = ['작업자\tD-Day\t업무명\t마감일\t진행률\t완료\t최근 보고일시\t최근 보고'];
+  Object.keys(map).sort().filter(n => !sel || n === sel).forEach(n => map[n].forEach(x =>
+    lines.push([n, ddLabel(x.t.dday), x.t.title, x.t.due, x.w.progress + '%', x.done ? '완료' : '', x.w.lastReportAt, (x.w.lastReport || '').replace(/\s+/g, ' ')].join('\t'))));
+  copyText(lines.join('\n'), '표를 복사했습니다. 엑셀·스프레드시트에 붙여 넣으세요.');
+};
+
+/* ================= 카톡 안내문 ================= */
+let share = { taskId: '', scope: '', data: null };
+async function openShare(taskId, workerId, mode) {
+  share.taskId = taskId;
+  $('#shMode').value = mode || 'auto';
+  await loadShare(workerId || '');
+  $('#shareDlg').showModal();
+}
+async function loadShare(scope) {
+  const d = await call('getShareText', share.taskId, scope, $('#shMode').value);
+  share.data = d; share.scope = d.scope;
+  const multi = d.workers.length > 1;
+  $('#shTargets').innerHTML = (multi ? `<button data-s="all" class="${d.scope === 'all' ? 'on' : ''}">👥 단체방용 (전원 링크)</button>` : '') +
+    d.workers.map(w => `<button data-s="${esc(w.id)}" class="${d.scope === w.id ? 'on' : ''} ${w.status === '완료' ? 'dim' : ''}">${esc(w.name)}${w.status === '완료' ? ' ✓' : ''}</button>`).join('');
+  $('#shText').value = d.text;
+  $('#shLinkRow').hidden = d.scope === 'all';
+  $('#shLink').value = d.link || '';
+  $('#shWho').textContent = d.scope === 'all' ? `${d.title} · 작업자 ${d.workers.length}명이 있는 단체방에 붙여 넣으세요`
+    : `${d.name}님${d.phone ? ' · ' + d.phone : ''} — 카톡에서 이 사람을 찾아 붙여 넣으세요`;
+  $('#shNative').hidden = !(navigator.share);
+}
+$('#shTargets').onclick = e => { const b = e.target.closest('[data-s]'); if (b) loadShare(b.dataset.s); };
+$('#shMode').onchange = () => loadShare(share.scope);
+$('#shCopy').onclick = () => copyText($('#shText').value, '안내문을 복사했습니다. 카톡 대화방에 붙여 넣으세요.');
+$('#shCopyLink').onclick = () => {
+  if (share.scope === 'all') return copyText(share.data.workers.map(w => `${w.name}: ${w.link}`).join('\n'), '작업자별 링크를 복사했습니다.');
+  copyText($('#shLink').value, '보고 링크를 복사했습니다.');
+};
+$('#shNative').onclick = async () => { try { await navigator.share({ text: $('#shText').value }); } catch (e) { copyText($('#shText').value); } };
+
+/* ================= 반복업무 ================= */
+let tpls = [];
+function ruleText(t) {
+  const r = String(t.dueRule || '');
+  if (!r) return '발행 시 지정';
+  if (t.cycle === '매월') return '매월 ' + (r === '31' ? '말일' : r + '일');
+  if (t.cycle === '매주') return '매주 ' + ('월화수목금토일'[(+r || 1) - 1] || '?') + '요일';
+  return '발행 후 ' + r + '일';
+}
+function suggestDue(t) {
+  const now = new Date(); now.setHours(0, 0, 0, 0);
+  const r = parseInt(t.dueRule, 10);
+  if (t.cycle === '매월' && r) {
+    const make = (y, m) => new Date(y, m, Math.min(r, new Date(y, m + 1, 0).getDate()));
+    let d = make(now.getFullYear(), now.getMonth());
+    if (d < now) d = make(now.getFullYear(), now.getMonth() + 1);
+    return ymd(d);
+  }
+  if (t.cycle === '매주' && r) {
+    const d = new Date(now); const target = r % 7;
+    while (d.getDay() !== target) d.setDate(d.getDate() + 1);
+    return ymd(d);
+  }
+  const d = new Date(now); d.setDate(d.getDate() + (r || 7)); return ymd(d);
+}
+function suggestTitle(t, due) {
+  const d = new Date(due);
+  if (isNaN(d)) return t.title;
+  return t.title + (t.cycle === '매월' ? ` (${d.getMonth() + 1}월)` : ` (${d.getMonth() + 1}/${d.getDate()} 마감)`);
+}
+async function loadTpls() {
+  if (!tasks.length) await loadTasks();
+  tpls = await call('getTemplates');
+  $('#tplAll').checked = false;
+  $('#tplBody').innerHTML = !tpls.length ? '<tr><td colspan="8" class="empty">등록된 반복업무가 없습니다. [+ 반복업무 등록] 또는 업무 등록 시 "반복업무로 등록"을 체크하세요.</td></tr>' :
+    tpls.map(t => `<tr data-id="${esc(t.id)}">
+      <td><input type="checkbox" class="tplChk" value="${esc(t.id)}"></td>
+      <td><b>${esc(t.title)}</b>${t.desc ? `<div class="sub clip">${esc(t.desc)}</div>` : ''}</td>
+      <td style="max-width:280px">${t.workers.map(w => `<span class="wk ${w.email ? '' : 'nomail'}"><b>${esc(w.name)}</b></span>`).join('')}</td>
+      <td><span class="chip rep">${esc(t.cycle)}</span> <span class="sub">${esc(ruleText(t))}</span></td>
+      <td>${t.openCount ? `<span class="chip s-진행중">${t.openCount}건</span> <span class="sub">마감 ${esc(t.openDue)}</span>` : '<span class="sub">없음</span>'}</td>
+      <td>${t.lastPublished ? esc(t.lastPublished.slice(0, 10)) : '<span class="sub">-</span>'}<div class="sub">누적 ${t.count}회</div></td>
+      <td class="sub">${t.alarm === 'none' ? '안 보냄' : '즉시 요청'}</td>
+      <td class="act"><button class="btn sm primary" data-act="pub">발행</button><button class="btn sm" data-act="edit">수정</button><button class="btn sm danger" data-act="del">삭제</button></td></tr>`).join('');
+  syncPubBtn();
+}
+function syncPubBtn() { const n = $$('.tplChk:checked').length; $('#btnPubSel').disabled = !n; $('#btnPubSel').textContent = n ? `선택 ${n}건 일괄 발행` : '선택 일괄 발행'; }
+$('#tplBody').addEventListener('change', syncPubBtn);
+$('#tplAll').onchange = e => { $$('.tplChk').forEach(c => c.checked = e.target.checked); syncPubBtn(); };
+$('#tplBody').addEventListener('click', async e => {
+  const el = e.target.closest('[data-act]'); if (!el) return;
+  const t = tpls.find(x => x.id === el.closest('tr').dataset.id);
+  if (el.dataset.act === 'pub') openPublish([t]);
+  else if (el.dataset.act === 'edit') openTpl(t);
+  else if (el.dataset.act === 'del') {
+    if (!confirm(`반복업무 "${t.title}"를 삭제할까요?\n이미 발행된 업무는 그대로 남습니다.`)) return;
+    await call('deleteTemplate', t.id); toast('삭제했습니다.'); loadTpls();
+  }
+});
+$('#btnPubSel').onclick = () => openPublish(tpls.filter(t => $$('.tplChk:checked').some(c => c.value === t.id)));
+
+const tplForm = $('#tplForm');
+$('#btnTplAdd').onclick = () => openTpl(null);
+function openTpl(t) {
+  tplForm.reset();
+  $('#tplDlgTitle').textContent = t ? '반복업무 수정' : '반복업무 등록';
+  const v = t || { cycle: '매월', alarm: 'now' };
+  ['id','title','desc','cycle','dueRule','alarm','memo'].forEach(k => tplForm.elements[k].value = v[k] ?? '');
+  renderWorkerEditor($('#tplWorkers'), t ? t.workers : [], false);
+  syncTplForm(); $('#tplDlg').showModal();
+}
+function syncTplForm() {
+  const f = tplForm.elements;
+  $('#tplRuleLbl').textContent = ruleLabel(f.cycle.value);
+  $('#tplRuleHint').textContent = f.dueRule.value ? '다음 기본 마감: ' + suggestDue({ cycle: f.cycle.value, dueRule: f.dueRule.value }) : '';
+}
+tplForm.addEventListener('input', syncTplForm);
+tplForm.onsubmit = async e => {
+  e.preventDefault();
+  const f = tplForm.elements;
+  const d = { id: f.id.value, title: f.title.value.trim(), desc: f.desc.value, cycle: f.cycle.value, dueRule: f.dueRule.value.trim(),
+    alarm: f.alarm.value, memo: f.memo.value, workers: readWorkers($('#tplWorkers')) };
+  if (!d.workers.length) return toast('작업자를 한 명 이상 입력하세요.', true);
+  await call('saveTemplate', d);
+  $('#tplDlg').close(); toast('저장했습니다.'); loadTpls();
+};
+
+/* 발행 */
+const pubForm = $('#pubForm');
+let pubItems = [];
+$('#pubResult').addEventListener('click', e => { const b = e.target.closest('[data-share]'); if (b) openShare(b.dataset.share, null, 'request'); });
+function openPublish(list) {
+  pubItems = list;
+  pubForm.reset(); $('#pubResult').hidden = true; $('#pubGo').disabled = false;
+  $('#pubBody').innerHTML = list.map(t => {
+    const due = suggestDue(t);
+    return `<tr data-id="${esc(t.id)}"><td><input class="btn" style="width:100%;cursor:text" name="title" value="${esc(suggestTitle(t, due))}"></td>
+      <td>${t.workers.map(w => `<span class="wk ${w.email ? '' : 'nomail'}"><b>${esc(w.name)}</b></span>`).join('')}</td>
+      <td><input type="date" class="btn" style="cursor:text" name="due" value="${due}"></td></tr>`;
+  }).join('');
+  const allNone = list.every(t => t.alarm === 'none');
+  pubForm.querySelector(`[name=alarm][value=${allNone ? 'none' : 'now'}]`).checked = true;
+  const at = new Date(); at.setDate(at.getDate() + 1); at.setHours(9, 0, 0, 0);
+  pubForm.elements.at.value = dtLocal(at);
+  syncPub(); $('#pubDlg').showModal();
+}
+function syncPub() { pubForm.elements.at.disabled = pubForm.elements.alarm.value !== 'at'; }
+pubForm.addEventListener('change', e => {
+  if (e.target.name === 'alarm') syncPub();
+  if (e.target.name === 'due') {
+    const tr = e.target.closest('tr'), t = pubItems.find(x => x.id === tr.dataset.id);
+    tr.querySelector('[name=title]').value = suggestTitle(t, e.target.value);
+  }
+});
+$('#pubApply').onclick = () => {
+  const v = $('#pubAllDue').value; if (!v) return;
+  $$('#pubBody tr').forEach(tr => { const t = pubItems.find(x => x.id === tr.dataset.id); tr.querySelector('[name=due]').value = v; tr.querySelector('[name=title]').value = suggestTitle(t, v); });
+};
+pubForm.onsubmit = async e => {
+  e.preventDefault();
+  const items = $$('#pubBody tr').map(tr => ({ id: tr.dataset.id, title: tr.querySelector('[name=title]').value.trim(), due: tr.querySelector('[name=due]').value }));
+  if (items.some(i => !i.due)) return toast('마감일을 모두 입력하세요.', true);
+  const alarm = pubForm.elements.alarm.value;
+  const label = alarm === 'now' ? '이메일 있는 작업자에게 지금 요청 메일을 보냅니다.' : alarm === 'at' ? pubForm.elements.at.value.replace('T', ' ') + '에 메일을 예약합니다.' : '메일은 보내지 않습니다.';
+  if (!confirm(`${items.length}건을 발행합니다.\n${label}`)) return;
+  const res = await call('publishTemplates', { items, alarm, at: pubForm.elements.at.value });
+  $('#pubResult').hidden = false;
+  $('#pubResult').innerHTML = res.map(r => `<li class="${r.ok ? 'ok-t' : 'ng-t'}">${r.ok ? '✔' : '✖'} <b>${esc(r.title)}</b> (${esc(r.owner || '')}) — ${esc(r.message)}
+      ${r.ok ? ` <button type="button" class="btn sm kakao" data-share="${esc(r.taskId)}">카톡 안내문</button>` : ''}</li>`).join('');
+  $('#pubGo').disabled = true;
+  toast(`${res.filter(r => r.ok).length}/${res.length}건 발행 완료`, res.some(r => !r.ok));
+  loadTpls(); loadTasks();
+};
+
+/* ================= 진행 보고 ================= */
+let reports = [];
+async function loadReports() {
+  reports = await call('getReports', { limit: 500 });
+  fillOwners('#rOwner', [...new Set(reports.map(r => r.owner))].sort());
+  renderReports();
+}
+function renderReports() {
+  const q = $('#rq').value.trim().toLowerCase(), o = $('#rOwner').value, s = $('#rStatus').value;
+  const list = reports.filter(r => (!o || r.owner === o) && (!s || r.status === s) && (!q || [r.title, r.owner, r.content].join(' ').toLowerCase().includes(q)));
+  $('#rCount').textContent = list.length + '건 (최근 500건)';
+  $('#rBody').innerHTML = list.length ? list.map(r => `<tr>
+    <td style="white-space:nowrap">${esc(r.at)}</td><td><b>${esc(r.title)}</b></td><td>${esc(r.owner)}</td>
+    <td style="white-space:nowrap">${r.prevProgress}% → <b>${r.progress}%</b></td><td><span class="chip s-${esc(r.status)}">${esc(r.status)}</span></td>
+    <td>${esc(r.expected || '-')}</td><td style="white-space:pre-wrap;min-width:300px">${esc(r.content)}</td></tr>`).join('')
+    : '<tr><td colspan="7" class="empty">보고 내역이 없습니다. 작업자가 메일·카톡으로 받은 링크에서 보고하면 여기에 쌓입니다.</td></tr>';
+}
+['#rq', '#rOwner', '#rStatus'].forEach(s => $(s).addEventListener('input', renderReports));
+$('#btnRptReload').onclick = loadReports;
+$('#btnRptAdd').onclick = async () => { if (!tasks.length) await loadTasks(); openTask(null); };
+
+/* ================= 예약 메일 ================= */
+let rsvs = [];
+const rsvForm = $('#rsvForm');
+async function loadRsv() {
+  if (!tasks.length) await loadTasks();
+  const cur = $('#rsvTask').value;
+  $('#rsvTask').innerHTML = '<option value="">— 업무 없이 직접 입력 —</option>' + taskOptions(true);
+  $('#rsvTask').value = cur;
+  syncRsvTask();
+  if (!rsvForm.elements.at.value) rsvResetForm();
+  rsvs = await call('getReservations');
+  renderRsv();
+}
+function syncRsvTask() {
+  const t = tasks.find(x => x.id === $('#rsvTask').value);
+  $('#rsvDirect').hidden = !!t;
+  if (!t) { $('#rsvTaskHint').textContent = ''; return; }
+  const mail = t.workers.filter(w => w.status !== '완료' && w.email), no = t.workers.filter(w => w.status !== '완료' && !w.email);
+  $('#rsvTaskHint').innerHTML = `받는 사람: <b>${esc(mail.map(w => w.name).join(', ') || '없음')}</b>` +
+    (no.length ? ` · <span class="wa-t">이메일 없음: ${esc(no.map(w => w.name).join(', '))} (카톡 안내)</span>` : '');
+}
+function renderRsv() {
+  const f = $('#rsvFilter').value;
+  const list = rsvs.filter(r => !f || r.status === f);
+  $('#rsvCount').textContent = list.length + '건';
+  $('#rsvBody').innerHTML = list.length ? list.map(r => `<tr data-id="${esc(r.id)}">
+    <td style="white-space:nowrap"><b>${esc(r.at)}</b><div class="sub">${esc(r.repeatLabel)}</div></td>
+    <td>${esc(r.taskTitle || r.subject || '(직접 입력)')}<div class="sub">${esc(r.name)}${r.email ? ' · ' + esc(r.email) : ''} · ${esc(r.kind)}</div></td>
+    <td><span class="chip s-${r.status === '대기' ? '대기예약' : esc(r.status)}">${esc(r.status)}</span></td>
+    <td class="sub">${r.lastSent ? esc(r.lastSent) + '<br>' : ''}${esc(r.result)}</td>
+    <td class="act">${r.status === '대기' ? '<button class="btn sm" data-act="edit">수정</button><button class="btn sm" data-act="now">지금 발송</button><button class="btn sm" data-act="cancel">취소</button>' : '<button class="btn sm" data-act="copy">복사</button>'}<button class="btn sm danger" data-act="del">삭제</button></td></tr>`).join('')
+    : '<tr><td colspan="5" class="empty">예약이 없습니다.</td></tr>';
+}
+$('#rsvFilter').onchange = renderRsv;
+$('#rsvReload').onclick = loadRsv;
+function rsvResetForm() {
+  rsvForm.reset(); rsvForm.elements.id.value = '';
+  const d = new Date(Date.now() + 3600e3); d.setMinutes(Math.ceil(d.getMinutes() / 5) * 5, 0, 0);
+  rsvForm.elements.at.value = dtLocal(d);
+  $('#rsvTitle').textContent = '⏰ 메일 예약';
+  syncRsvTask();
+}
+$('#rsvReset').onclick = rsvResetForm;
+function rsvPrefill(taskId) { rsvResetForm(); $('#rsvTask').value = taskId; syncRsvTask(); }
+$('#rsvTask').onchange = syncRsvTask;
+rsvForm.querySelectorAll('[data-q]').forEach(b => b.onclick = () => {
+  const d = new Date(), q = b.dataset.q;
+  if (q === '1h') { d.setTime(Date.now() + 3600e3); d.setMinutes(Math.ceil(d.getMinutes() / 5) * 5, 0, 0); }
+  else if (q === 'tm9' || q === 'tm14') { d.setDate(d.getDate() + 1); d.setHours(q === 'tm9' ? 9 : 14, 0, 0, 0); }
+  else if (q === 'pre') {
+    const t = tasks.find(x => x.id === $('#rsvTask').value);
+    if (!t || !t.due) return toast('대상 업무를 먼저 선택하세요.', true);
+    const p = new Date(t.due); p.setDate(p.getDate() - 1); p.setHours(9, 0, 0, 0); d.setTime(p.getTime());
+  }
+  rsvForm.elements.at.value = dtLocal(d);
+});
+rsvForm.onsubmit = async e => {
+  e.preventDefault();
+  const el = rsvForm.elements;
+  const d = { id: el.id.value, taskId: el.taskId.value, name: el.name.value.trim(), email: el.email.value.trim(),
+    at: el.at.value, repeat: el.repeat.value, subject: el.subject.value.trim(), body: el.body.value.trim(),
+    cancelOnDone: el.cancelOnDone.checked ? 'Y' : 'N' };
+  await call('saveReservation', d);
+  toast(`${d.at.replace('T', ' ')} 메일 예약을 저장했습니다.`);
+  rsvResetForm(); loadRsv();
+};
+$('#rsvBody').addEventListener('click', async e => {
+  const el = e.target.closest('[data-act]'); if (!el) return;
+  const r = rsvs.find(x => x.id === el.closest('tr').dataset.id), act = el.dataset.act;
+  if (act === 'edit' || act === 'copy') {
+    rsvResetForm();
+    const f = rsvForm.elements;
+    if (act === 'edit') { f.id.value = r.id; f.at.value = r.atInput; $('#rsvTitle').textContent = '⏰ 예약 수정'; }
+    $('#rsvTask').value = r.taskId; syncRsvTask();
+    if (!r.taskId) { f.name.value = r.name; f.email.value = r.email; }
+    f.repeat.value = r.repeat; f.subject.value = r.subject; f.body.value = r.body; f.cancelOnDone.checked = r.cancelOnDone !== 'N';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  } else if (act === 'now') {
+    if (!confirm('지금 메일을 보낼까요? (예약은 그대로 유지)')) return;
+    const res = await call('sendReservationNow', r.id);
+    toast((res.map(x => `${x.name} ${x.ok ? '발송 요청' : '실패'}`).join(' · ') || '발송 대상 없음') + (res.length ? ' — 1~15분 안에 도착' : ''), !res.length || res.some(x => !x.ok)); loadRsv();
+  } else if (act === 'cancel') {
+    if (!confirm('이 예약을 취소할까요?')) return;
+    await call('cancelReservation', r.id); toast('취소했습니다.'); loadRsv();
+  } else if (act === 'del') {
+    if (!confirm('이 예약을 삭제할까요?')) return;
+    await call('deleteReservation', r.id); toast('삭제했습니다.'); loadRsv();
+  }
+});
+
+/* ================= 테스트 ================= */
+async function loadTest() {
+  await loadSandbox();          // 테스트 업무가 없으면 이때 생성됨
+  await loadTasks();
+  const opts = '<option value="TEST">🧪 테스트 업무 (DB에 기록 · 초기화 가능)</option>' + taskOptions(false);
+  ['#pvTask', '#testTask'].forEach(s => { const c = $(s).value; $(s).innerHTML = opts; $(s).value = c; });
+  syncPvWorkers();
+  if (!$('#simDate').value) $('#simDate').value = ymd(new Date());
+}
+async function loadSandbox() {
+  const s = await call('getTestSandbox');
+  $('#sbOut').innerHTML = `<div class="panel" style="margin-bottom:10px"><table><thead><tr><th>테스트 작업자</th><th>진행률</th><th>상태</th><th>예상일</th><th>최근 보고</th><th>보고 링크</th></tr></thead><tbody>` +
+    s.workers.map(w => `<tr><td><b>${esc(w.name)}</b></td>
+      <td style="white-space:nowrap"><span class="bar"><i class="${w.status === '완료' ? 'ok' : ''}" style="width:${w.progress}%"></i></span>${w.progress}%</td>
+      <td><span class="chip s-${esc(w.status)}">${esc(w.status)}</span></td><td>${esc(w.expected || '-')}</td>
+      <td>${w.lastReportAt ? `<div class="sub">${esc(w.lastReportAt)}</div><div class="clip">${esc(w.lastReport)}</div>` : '<span class="sub">보고 없음</span>'}</td>
+      <td class="act">${w.link ? `<button class="btn sm" data-sbopen="${esc(w.link)}">열기</button><button class="btn sm" data-sbcopy="${esc(w.link)}">복사</button>` : '<span class="sub ng-t">앱 주소 필요</span>'}</td></tr>`).join('') +
+    `</tbody></table></div><div class="sub" style="margin-bottom:6px">전체 진행률 <b>${s.progress}%</b> · ${esc(s.status)} · 마감 ${esc(s.due)} (${ddLabel(s.dday)})</div>` +
+    (s.reports.length ? '<div class="timeline">' + s.reports.map(r => `<div class="it"><div class="h">${esc(r.at)} · <b>${esc(r.owner)}</b> · ${r.prevProgress}% → <b>${r.progress}%</b> · ${esc(r.status)}${r.expected ? ' · 예상 ' + esc(r.expected) : ''}</div><div class="c">${esc(r.content)}</div></div>`).join('') + '</div>'
+      : '<div class="sub">아직 테스트 보고가 없습니다. 테스트 메일이나 [열기]로 보고 페이지에 들어가 입력해 보세요.</div>');
+}
+$('#sbOut').addEventListener('click', e => {
+  const o = e.target.closest('[data-sbopen]'), c = e.target.closest('[data-sbcopy]');
+  if (o) window.open(o.dataset.sbopen, '_blank');
+  if (c) copyText(c.dataset.sbcopy, '테스트 보고 링크를 복사했습니다.');
+});
+$('#btnSbReload').onclick = loadSandbox;
+async function resetTestTask() {
+  if (!confirm('테스트 업무를 초기화할까요?\n\n· 테스트 업무·작업자·진행보고 기록이 삭제되고 처음 상태로 다시 만들어집니다\n· 실제 업무는 건드리지 않습니다\n· 이전에 보낸 테스트 링크는 더 이상 열리지 않습니다')) return;
+  await call('resetTestSandbox');
+  toast('테스트 업무를 초기화했습니다. 새 테스트 메일·안내문을 보내세요.');
+  await loadTasks();
+  if (!$('#tab-test').hidden) { await loadSandbox(); syncPvWorkers(); }
+}
+$('#btnSbReset').onclick = resetTestTask;
+function syncPvWorkers() {
+  const id = $('#pvTask').value;
+  const t = tasks.find(x => x.id === id);
+  const ws = t ? t.workers : [];
+  $('#pvWorker').innerHTML = '<option value="">첫 작업자</option>' + ws.map(w => `<option value="${esc(w.id)}">${esc(w.name)}</option>`).join('');
+}
+$('#pvTask').onchange = syncPvWorkers;
+const ICON = { ok: '✅', ng: '❌', warn: '⚠️', info: 'ℹ️' };
+$('#btnDiag').onclick = async () => {
+  const rows = await call('getDiagnostics');
+  let g = '';
+  $('#diagBody').innerHTML = rows.map(r => (r.group !== g ? `<tr class="grp"><td colspan="3">${esc(g = r.group)}</td></tr>` : '') +
+    `<tr><td>${ICON[r.state] || ''}</td><td style="white-space:nowrap">${esc(r.item)}</td><td class="sub">${esc(r.detail)}</td></tr>`).join('');
+  const ng = rows.filter(r => r.state === 'ng').length, wa = rows.filter(r => r.state === 'warn').length;
+  toast(ng ? `문제 ${ng}건, 주의 ${wa}건` : wa ? `주의 ${wa}건 — 나머지는 정상` : '모두 정상입니다.', ng > 0);
+};
+$$('[data-sim]').forEach(b => b.onclick = () => { const d = new Date(); d.setDate(d.getDate() + +b.dataset.sim); $('#simDate').value = ymd(d); $('#btnSim').click(); });
+$('#btnSim').onclick = async () => {
+  const r = await call('simulateNotify', $('#simDate').value);
+  const items = r.items.length ? `<table><thead><tr><th>업무</th><th>작업자</th><th>구분</th><th>방법</th><th></th></tr></thead><tbody>` +
+    r.items.map(i => `<tr><td>${esc(i.title)}</td><td>${esc(i.owner)}</td><td><b>${esc(i.dday)}</b> <span class="sub">${esc(i.kind)}</span></td><td class="sub ${i.manual ? 'wa-t' : ''}">${esc(i.channels)}</td><td>${i.sent ? '<span class="chip s-완료">발송됨</span>' : i.manual ? `<button class="btn sm kakao" data-share="${esc(i.id)}" data-w="${esc(i.workerId)}">카톡</button>` : ''}</td></tr>`).join('') + '</tbody></table>'
+    : '<div class="empty">이날 D-day 알림 대상이 없습니다.</div>';
+  const rsv = r.reservations.length ? '<h4 style="margin:12px 0 6px">예약 메일</h4><table><tbody>' +
+    r.reservations.map(x => `<tr><td><b>${esc(x.at)}</b></td><td>${esc(x.title)}</td><td class="sub">${esc(x.name)}</td></tr>`).join('') + '</tbody></table>' : '';
+  $('#simOut').innerHTML = `<div class="hint" style="margin-bottom:6px"><b>${esc(r.date)}</b> ${esc(r.sendTime)} 알림 대상 ${r.items.length}명 (카톡 수동 ${r.items.filter(i => i.manual).length}명) · 예약 ${r.reservations.length}건</div><div class="panel">${items}</div>${rsv}`;
+};
+$('#simOut').addEventListener('click', e => { const b = e.target.closest('[data-share]'); if (b) openShare(b.dataset.share, b.dataset.w); });
+$('#btnPv').onclick = async () => {
+  const off = $('#pvOffset').value;
+  const r = await call('previewMessage', $('#pvTask').value, off === '' ? null : off, $('#pvWorker').value);
+  $('#pvOut').innerHTML = `<div class="kv"><b>받는 작업자</b><span>${esc(r.to.name)} · ${esc(r.to.email)}</span>
+      <b>구분</b><span>${esc(r.kind)} (${esc(r.dday)})</span><b>메일 제목</b><span>${esc(r.subject)}</span></div>
+    <iframe class="mail" id="pvMail"></iframe>
+    <div class="lbl" style="margin:10px 0 4px">💬 카톡 안내문 (개인용)</div><div class="smsbox">${esc(r.chat)}</div>
+    ${r.reportUrl ? '' : '<div class="hint ng-t" style="margin-top:6px">앱 주소가 없어 보고 링크가 비어 있습니다. 알림 설정 > 앱 주소를 입력하세요.</div>'}`;
+  $('#pvMail').srcdoc = r.html;
+};
+$('#btnTest').onclick = async () => {
+  const to = $('#testTo').value.trim(); if (!to) return toast('받을 이메일을 입력하세요.', true);
+  await call('testSend', 'email', to, $('#testTask').value);
+  toast('테스트 메일 발송을 요청했습니다 — 1~15분 안에 받은편지함(스팸함 포함)을 확인하세요.' + ($('#testTask').value === 'TEST' ? ' 메일의 [진행 현황 보고하기]로 입력해 보세요.' : ''));
+};
+$('#btnTestShare').onclick = () => openShare($('#testTask').value || 'TEST', null, 'request');
+$('#btnOpenReport').onclick = async () => {
+  const id = $('#testTask').value || 'TEST';
+  const tk = tasks.find(x => x.id === id);
+  const wid = tk && tk.workers[0] ? tk.workers[0].id : '';
+  const d = await call('getShareText', id, wid, 'auto');
+  if (!d.link) return toast('앱 주소가 없어 링크를 만들 수 없습니다. 알림 설정에서 입력하세요.', true);
+  window.open(d.link, '_blank');
+};
+$('#btnRunDaily').onclick = async () => {
+  if (!confirm('오늘 D-day 알림 대상 작업자에게 메일을 보낼까요?\n(오늘 이미 받은 작업자는 제외 · 발송기 다음 실행 때 처리)')) return;
+  const r = await call('runDaily');
+  toast(r.dispatched ? '발송기를 깨웠습니다 — 1~2분 안에 발송됩니다.' : '다음 발송기 실행(5~15분) 때 오늘 알림을 보냅니다.');
+};
+$('#btnRunRsv').onclick = async () => { const r = await call('runReservations'); toast(r.dispatched ? '발송기를 깨웠습니다 — 대기 메일·예약을 1~2분 안에 처리합니다.' : '즉시 발송(GitHub 토큰)이 설정되지 않아 다음 정기 실행(5~15분) 때 처리됩니다.'); };
+
+/* ================= 알림 설정 ================= */
+const DAY_OPTS = [30, 14, 10, 7, 5, 3, 2, 1, 0];
+const setForm = $('#setForm');
+const TXT = ['overdueEvery','sendTime','senderName','adminEmail','mailSubject','mailBody','chatText','chatGroupText','appUrl'];
+const CHK = ['adminDigest','notifyOnComplete','notifyOnReport'];
+async function loadSettings() {
+  const s = await call('getSettings');
+  const days = String(s.remindDays).split(',').map(Number);
+  $('#dayChips').innerHTML = DAY_OPTS.map(d => `<label><input type="checkbox" value="${d}" ${days.includes(d) ? 'checked' : ''}>${d === 0 ? 'D-DAY' : 'D-' + d}</label>`).join('');
+  TXT.forEach(k => setForm.elements[k].value = s[k] ?? '');
+  CHK.forEach(k => setForm.elements[k].checked = s[k] === 'Y');
+  $('#urlHint').innerHTML = s.appUrl ? '' : '비어 있음 → 지금 주소 사용: ' + esc(s.detectedUrl);
+  if (HAS_GAS) loadGh();
+}
+setForm.onsubmit = async e => {
+  e.preventDefault();
+  const s = {};
+  TXT.forEach(k => s[k] = setForm.elements[k].value.trim());
+  CHK.forEach(k => s[k] = setForm.elements[k].checked ? 'Y' : 'N');
+  s.remindDays = $$('#dayChips input:checked').map(i => i.value).join(',');
+  if (!s.remindDays) return toast('알림 시점을 하나 이상 선택하세요.', true);
+  if (!/\{보고링크\}/.test(s.chatText) && !confirm('개인용 카톡 안내문에 {보고링크}가 없습니다. 그대로 저장할까요?')) return;
+  if (!/\{작업자별링크\}/.test(s.chatGroupText) && !confirm('단체방용 안내문에 {작업자별링크}가 없습니다. 그대로 저장할까요?')) return;
+  await call('saveSettings', s); toast('설정을 저장했습니다.'); loadSettings();
+};
+async function loadGh() {
+  const st = await call('getStatus');
+  $('#ghForm').elements.repo.value = st.repo || '';
+  $('#ghState').innerHTML = st.hasToken ? (st.pgNet ? '✅ 즉시 발송 사용 중' : '⚠️ 토큰은 있지만 pg_net 확장이 꺼져 있습니다 (Supabase › Database › Extensions › pg_net 켜기)') : 'ℹ️ 토큰 없음 — 5~15분 주기 발송';
+}
+$('#ghForm').onsubmit = async e => {
+  e.preventDefault();
+  const f = e.target.elements;
+  await call('saveGithub', f.repo.value.trim(), f.token.value.trim() || undefined);
+  f.token.value = ''; toast('저장했습니다.'); loadGh();
+};
+$('#ghClear').onclick = async () => { if (!confirm('GitHub 토큰을 삭제할까요?')) return; await call('saveGithub', undefined, ''); toast('삭제했습니다.'); loadGh(); };
+$('#vars').onclick = e => { if (e.target.tagName === 'CODE') copyText(e.target.textContent); };
+$('#pwForm').onsubmit = async e => {
+  e.preventDefault();
+  const f = e.target.elements;
+  await call('changePassword', f.old.value, f.new1.value);
+  e.target.reset(); toast('비밀번호를 변경했습니다.');
+};
+
+/* ================= 발송 로그 ================= */
+let logs = [];
+async function loadLogs() { logs = await call('getLogs', 300); renderLogs(); }
+function renderLogs() {
+  const f = $('#logFilter').value, list = logs.filter(l => !f || l.result === f);
+  $('#logCount').textContent = list.length + '건 (최근 300건)';
+  $('#logBody').innerHTML = list.length ? list.map(l => `<tr><td style="white-space:nowrap">${esc(l.at)}</td><td>${esc(l.title)}</td><td>${esc(l.owner)}</td>
+    <td>${esc(l.channel)}</td><td>${esc(l.to)}</td><td>${esc(l.kind)}</td><td>${esc(l.mode)}</td>
+    <td class="${l.result === '성공' ? 'ok-t' : 'ng-t'}"><b>${esc(l.result)}</b></td><td class="sub">${esc(l.detail)}</td></tr>`).join('')
+    : '<tr><td colspan="9" class="empty">발송 기록이 없습니다.</td></tr>';
+}
+$('#logFilter').onchange = renderLogs;
+$('#btnLogReload').onclick = loadLogs;
+
+/* ================= 미리보기용 데모 ================= */
+const Demo = (() => {
+  const add = n => { const d = new Date(); d.setDate(d.getDate() + n); return ymd(d); };
+  const today = add(0), diff = due => Math.round((new Date(due) - new Date(today)) / 864e5);
+  const now = () => { const d = new Date(); return `${ymd(d)} ${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+  const URL0 = 'https://example.github.io/dday-task-app/';
+  let seq = 100;
+  let cfg = { remindDays:'14,7,3,1,0', overdueEvery:'1', sendTime:'09:00', senderName:'업무알림', adminEmail:'manager@example.com',
+    adminDigest:'Y', notifyOnComplete:'Y', notifyOnReport:'Y', appUrl:URL0, detectedUrl:URL0,
+    mailSubject:'[업무알림] {업무명} — {구분} ({디데이})',
+    mailBody:'{담당자}님, 안녕하세요.\n\n담당하신 업무의 진행 현황 확인을 요청드립니다.\n\n· 업무: {업무명}\n· 함께하는 작업자: {작업자목록}\n· 마감일: {마감일} ({디데이})\n· 내 진행률: {진행률} / 상태: {상태}\n\n아래 [진행 현황 보고하기] 버튼을 눌러 진행 상황을 입력해 주세요.',
+    chatText:'[{구분}] {업무명}\n\n{담당자}님, 안녕하세요.\n담당 업무 진행 현황 확인 부탁드립니다.\n\n· 마감일: {마감일} ({디데이})\n· 내 진행률: {진행률} / {상태}\n\n아래 링크에서 진행 상황을 입력해 주세요 👇\n{보고링크}',
+    chatGroupText:'[{구분}] {업무명}\n\n공동 작업자: {작업자목록}\n· 마감일: {마감일} ({디데이})\n· 전체 진행률: {전체진행률}\n\n각자 본인 링크에서 진행 상황을 입력해 주세요 👇\n{작업자별링크}' };
+  const W = (id, name, phone, email, progress, status, extra) => ({ id, name, phone, email, progress, status, expected: '', doneDate: '', lastReportAt: '', lastReport: '', ...(extra || {}) });
+  let T = [
+    { id:'T1', title:'4분기 부가세 신고 자료 취합', desc:'매입·매출 세금계산서 대사 후 세무사 전달', due:add(2), expected:add(3), memo:'', created:add(-10), recurId:'',
+      workers:[W('W1','김민수','010-1234-5678','ms.kim@example.com',60,'진행중',{expected:add(3),lastReportAt:add(-3)+' 17:40',lastReport:'매입분 대사 완료'}),
+               W('W2','이지은','010-2345-6789','je.lee@example.com',100,'완료',{expected:add(1),doneDate:add(-1),lastReportAt:add(-1)+' 10:05',lastReport:'매출분 대사 완료'}),
+               W('W3','박준호','010-3456-7890','',0,'대기')] },
+    { id:'T2', title:'연말정산 안내문 배포', desc:'', due:add(9), expected:add(8), memo:'', created:add(-5), recurId:'',
+      workers:[W('W4','이지은','010-2345-6789','je.lee@example.com',30,'진행중')] },
+    { id:'T3', title:'법인차량 보험 갱신', desc:'3대 일괄 갱신', due:add(-2), expected:'', memo:'견적 회신 대기', created:add(-20), recurId:'',
+      workers:[W('W5','박준호','010-3456-7890','',80,'진행중',{lastReportAt:add(-9)+' 10:12',lastReport:'보험사 3곳 견적 요청함'})] },
+    { id:'T4', title:'월말 급여대장 검토 (11월)', desc:'근태 반영 여부 확인', due:add(0), expected:add(0), memo:'', created:add(-7), recurId:'P1',
+      workers:[W('W6','김민수','010-1234-5678','ms.kim@example.com',90,'진행중',{lastReportAt:add(-1)+' 18:05',lastReport:'수당 항목 확인 중'}),
+               W('W7','최현우','010-5555-1212','hw.choi@example.com',70,'진행중',{lastReportAt:add(-2)+' 15:20',lastReport:'포천 사업장 근태 반영 완료'})] },
+    { id:'T5', title:'주간 재고 실사 보고 (11/14 마감)', desc:'', due:add(-8), expected:'', memo:'', created:add(-12), recurId:'P2',
+      workers:[W('W8','최현우','010-5555-1212','hw.choi@example.com',100,'완료',{doneDate:add(-8),lastReportAt:add(-8)+' 16:30',lastReport:'실사 완료, 차이 없음'})] }
+  ];
+  let P = [
+    { id:'P1', title:'월말 급여대장 검토', desc:'근태 반영 여부 확인', cycle:'매월', dueRule:'25', alarm:'now', memo:'', lastPublished:add(-7)+' 09:00', count:11,
+      workers:[{name:'김민수',phone:'010-1234-5678',email:'ms.kim@example.com'},{name:'최현우',phone:'010-5555-1212',email:'hw.choi@example.com'}] },
+    { id:'P2', title:'주간 재고 실사 보고', desc:'', cycle:'매주', dueRule:'5', alarm:'now', memo:'', lastPublished:add(-12)+' 09:00', count:46,
+      workers:[{name:'최현우',phone:'010-5555-1212',email:'hw.choi@example.com'}] },
+    { id:'P3', title:'안전점검 체크리스트 제출', desc:'양주·포천 현장', cycle:'수시', dueRule:'3', alarm:'none', memo:'', lastPublished:'', count:0,
+      workers:[{name:'박준호',phone:'010-3456-7890',email:''},{name:'정대리',phone:'010-7777-8888',email:''}] }
+  ];
+  let R = [
+    { at:add(-1)+' 18:05', taskId:'T4', title:'월말 급여대장 검토 (11월)', owner:'김민수', prevProgress:60, progress:90, status:'진행중', expected:add(0), content:'수당 항목 확인 중, 내일 오전 완료 예정' },
+    { at:add(-1)+' 10:05', taskId:'T1', title:'4분기 부가세 신고 자료 취합', owner:'이지은', prevProgress:70, progress:100, status:'완료', expected:add(1), content:'매출분 세금계산서 대사 완료했습니다.' },
+    { at:add(-2)+' 15:20', taskId:'T4', title:'월말 급여대장 검토 (11월)', owner:'최현우', prevProgress:20, progress:70, status:'진행중', expected:add(0), content:'포천 사업장 근태 반영 완료' },
+    { at:add(-3)+' 17:40', taskId:'T1', title:'4분기 부가세 신고 자료 취합', owner:'김민수', prevProgress:30, progress:60, status:'진행중', expected:add(3), content:'매입분 대사 완료, 증빙 정리 예정' },
+    { at:add(-9)+' 10:12', taskId:'T3', title:'법인차량 보험 갱신', owner:'박준호', prevProgress:20, progress:80, status:'진행중', expected:'', content:'보험사 3곳 견적 요청함' }
+  ];
+  let V = [{ id:'R1', at:add(1)+' 09:00', atInput:add(1)+'T09:00', repeat:'none', repeatLabel:'반복 없음', taskId:'T2', taskTitle:'연말정산 안내문 배포', name:'미완료 작업자 전원', email:'이지은', kind:'예약 알림', subject:'', body:'', cancelOnDone:'Y', status:'대기', lastSent:'', result:'' }];
+  let TB = null;
+  const resetTB = () => { TB = { id:'TEST', title:'[테스트] 샘플 업무', desc:'테스트용 업무입니다.', due:add(3), expected:'', memo:'', recurId:'',
+    workers:[W('TW1','홍길동','','',0,'대기'), W('TW2','김철수','','',40,'진행중')], reports:[] }; };
+  resetTB(); T.push(TB);
+  const findT = id => T.find(x => x.id === id);
+  const L = [{ at: today + ' 09:02', title:'4분기 부가세 신고 자료 취합', owner:'김민수', channel:'이메일', to:'ms.kim@example.com', kind:'마감 2일 전', mode:'자동', result:'성공', detail:'' }];
+  const agg = t => {
+    const ws = t.workers, avg = Math.round(ws.reduce((s, w) => s + +w.progress, 0) / ws.length);
+    const st = ws.every(w => w.status === '완료') ? '완료' : ws.some(w => w.status === '진행중' || w.status === '완료' || +w.progress > 0) ? '진행중' : ws.some(w => w.status === '보류') ? '보류' : '대기';
+    const last = ws.filter(w => w.lastReportAt).sort((a, b) => b.lastReportAt.localeCompare(a.lastReportAt))[0];
+    const exps = ws.map(w => w.expected).filter(Boolean).sort();
+    const exp = exps.length ? exps[exps.length - 1] : t.expected;
+    return { ...t, progress: st === '완료' ? 100 : avg, status: st, expected: exp, dday: diff(t.due), risk: !!(exp && exp > t.due),
+      lastReportAt: last ? last.lastReportAt : '', lastReport: last ? last.name + ': ' + last.lastReport : '' };
+  };
+  const link = w => URL0 + 'report.html?r=' + (w.id || 'x').toLowerCase().padEnd(10, '0') + '…';
+  const fill = (s, v) => s.replace(/\{([^{}]+)\}/g, (m, k) => v[k] ?? m);
+  const kindOf = (t, mode) => mode === 'request' ? '업무 요청' : mode === 'check' ? '진행 확인 요청' : t.status === '완료' ? '완료 확인' : t.dday > 0 ? `마감 ${t.dday}일 전` : t.dday === 0 ? '오늘 마감' : `마감 ${-t.dday}일 경과`;
+  const vars = (t, w, kind) => ({ 담당자:w.name, 업무명:t.title, 마감일:t.due, 마감예상일:w.expected || t.expected || '미입력', 디데이:ddLabel(t.dday), 진행률:w.progress + '%', 상태:w.status, 구분:kind, 전체진행률:t.progress + '%', 작업자목록:t.workers.map(x => x.name).join(', '), 보고링크:link(w) });
+  const fail = m => Promise.reject(new Error(m));
+  const H = {
+    adminLogin: () => 'demo',
+    getTasks: () => JSON.parse(JSON.stringify(T.map(agg))),
+    saveTask: d => {
+      if (!d.title || !d.due) return fail('업무명·마감일은 필수입니다.');
+      const ws = d.workers.map(w => ({ ...W(w.id || 'W' + (++seq), w.name, w.phone, w.email, w.status === '완료' ? 100 : +w.progress || 0, w.status || '대기'),
+        ...(T.flatMap(t => t.workers).find(x => x.id === w.id) ? { lastReportAt: T.flatMap(t => t.workers).find(x => x.id === w.id).lastReportAt, lastReport: T.flatMap(t => t.workers).find(x => x.id === w.id).lastReport } : {}) }));
+      if (d.makeRecurring === 'Y' && !d.recurId) { d.recurId = 'P' + (++seq); P.push({ id:d.recurId, title:d.title, desc:d.desc, cycle:d.cycle, dueRule:d.dueRule, alarm:'now', memo:'', lastPublished:now(), count:1, workers:ws.map(w => ({ name:w.name, phone:w.phone, email:w.email })) }); }
+      let id = d.id;
+      const i = T.findIndex(x => x.id === d.id);
+      if (i >= 0) T[i] = { ...T[i], title:d.title, desc:d.desc, due:d.due, expected:d.expected, memo:d.memo, workers:ws };
+      else { id = 'T' + (++seq); T.push({ id, title:d.title, desc:d.desc, due:d.due, expected:d.expected, memo:d.memo, created:today, recurId:d.recurId || '', workers:ws }); }
+      return { id, recurId: d.recurId, notify: d.notifyNow === 'Y' ? ws.filter(w => w.email).map(w => ({ name:w.name, channel:'이메일', ok:true })) : null };
+    },
+    deleteTask: id => { T = T.filter(x => x.id !== id); return true; },
+    completeTask: (id, on, wid) => { T.find(x => x.id === id).workers.filter(w => !wid || w.id === wid).forEach(w => Object.assign(w, on ? { status:'완료', progress:100, doneDate:today } : { status:'진행중', doneDate:'' })); return true; },
+    sendNow: (id, kind, wid) => { const t = T.find(x => x.id === id); const tg = t.workers.filter(w => (wid ? w.id === wid : w.status !== '완료') && w.email);
+      return tg.length ? tg.map(w => ({ name:w.name, channel:'이메일', ok:true })) : fail('메일을 받을 작업자가 없습니다. [카톡] 버튼으로 안내문을 복사해 전달하세요.'); },
+    getShareText: (id, scope, mode) => {
+      const t = agg(findT(id)), kind = kindOf(t, mode);
+      const workers = t.workers.map(w => ({ id:w.id, name:w.name, phone:w.phone, email:w.email, status:w.status, link:link(w) }));
+      if (scope === 'all' || (!scope && t.workers.length > 1)) {
+        const v = vars(t, t.workers[0], kind); v.작업자별링크 = t.workers.filter(w => w.status !== '완료').map(w => '· ' + w.name + ': ' + link(w)).join('\n') || '(모두 완료)';
+        return { scope:'all', kind, text:fill(cfg.chatGroupText, v), link:'', workers, title:t.title };
+      }
+      const w = t.workers.find(x => x.id === scope) || t.workers[0];
+      return { scope:w.id, kind, text:fill(cfg.chatText, vars(t, w, kind)), link:link(w), workers, title:t.title, name:w.name, phone:w.phone };
+    },
+    getTemplates: () => P.map(p => { const o = T.filter(t => t.recurId === p.id).map(agg).filter(t => t.status !== '완료'); return { ...p, owner:p.workers.map(w => w.name).join(', '), openCount:o.length, openDue:o.map(t => t.due).sort()[0] || '' }; }),
+    saveTemplate: d => { const i = P.findIndex(x => x.id === d.id); const o = { ...d, workers:d.workers.map(w => ({ name:w.name, phone:w.phone, email:w.email })) };
+      if (i >= 0) P[i] = { ...P[i], ...o }; else P.push({ ...o, id:'P' + (++seq), lastPublished:'', count:0 }); return true; },
+    deleteTemplate: id => { P = P.filter(x => x.id !== id); return true; },
+    publishTemplates: req => req.items.map(it => {
+      const p = P.find(x => x.id === it.id), id = 'T' + (++seq);
+      T.push({ id, title:it.title, desc:p.desc, due:it.due, expected:'', memo:p.memo, created:today, recurId:p.id, workers:p.workers.map(w => W('W' + (++seq), w.name, w.phone, w.email, 0, '대기')) });
+      p.lastPublished = now(); p.count++;
+      const m = p.workers.filter(w => w.email).length, n = p.workers.length - m;
+      return { id:p.id, taskId:id, title:it.title, owner:p.workers.map(w => w.name).join(', '), ok:true,
+        message:`업무 생성 (작업자 ${p.workers.length}명)` + (m && req.alarm === 'now' ? ` · 메일 ${m}명 발송` : m && req.alarm === 'at' ? ' · ' + req.at.replace('T', ' ') + ' 메일 예약' : req.alarm === 'none' ? ' · 메일 발송 안 함' : '') + (n ? ` · 이메일 없는 ${n}명은 카톡 안내문으로 전달하세요` : '') };
+    }),
+    getReports: o => R.filter(r => !o || !o.taskId || r.taskId === o.taskId),
+    getReservations: () => V,
+    saveReservation: d => {
+      if (!d.at) return fail('예약 일시를 입력하세요.');
+      const t = T.find(x => x.id === d.taskId);
+      if (!t && (!d.name || !d.email)) return fail('받는 사람 이름·이메일을 입력하세요.');
+      const o = { ...d, atInput:d.at, at:d.at.replace('T', ' '), repeatLabel:{ none:'반복 없음', daily:'매일', weekdays:'평일(월~금)', weekly:'매주' }[d.repeat], taskTitle:t ? t.title : '',
+        name:t ? '미완료 작업자 전원' : d.name, email:t ? t.workers.filter(w => w.email && w.status !== '완료').map(w => w.name).join(', ') : d.email, kind:'예약 알림', status:'대기', lastSent:'', result:'' };
+      const i = V.findIndex(x => x.id === d.id); if (i >= 0) V[i] = { ...V[i], ...o }; else V.push({ ...o, id:'R' + (++seq) });
+      V.sort((a, b) => a.at.localeCompare(b.at)); return true;
+    },
+    cancelReservation: id => { Object.assign(V.find(x => x.id === id), { status:'취소', result:'사용자 취소' }); return true; },
+    deleteReservation: id => { V = V.filter(x => x.id !== id); return true; },
+    sendReservationNow: () => [{ name:'이지은', channel:'이메일', ok:true }],
+    getDiagnostics: () => [
+      { group:'기본', item:'데이터베이스', state:'ok', detail:'' }, { group:'기본', item:'메일 발송기', state:'ok', detail:'5분마다 실행 중' },
+      { group:'기본', item:'앱 주소', state:'ok', detail:URL0 }, { group:'기본', item:'관리자 비밀번호', state:'ok', detail:'설정됨' },
+      { group:'자동 알림', item:'매일 발송 시각', state:'ok', detail:cfg.sendTime + ' (최대 5분 지연)' },
+      { group:'이메일', item:'오늘 남은 발송 한도', state:'ok', detail:'94통' }, { group:'이메일', item:'관리자 이메일', state:'ok', detail:cfg.adminEmail },
+      { group:'카톡 안내문', item:'개인용 문구에 {보고링크}', state:'ok', detail:'포함' },
+      { group:'데이터', item:'이메일 없는 작업자 (카톡 수동 안내)', state:'warn', detail:'2명 — 박준호(4분기 부가세 신고 자료 취합), 박준호(법인차량 보험 갱신)' }],
+    simulateNotify: date => {
+      const days = cfg.remindDays.split(',').map(Number), items = [];
+      T.map(agg).filter(t => t.status !== '완료').forEach(t => {
+        const d = Math.round((new Date(t.due) - new Date(date)) / 864e5);
+        if (!((d >= 0 && days.includes(d)) || d < 0)) return;
+        t.workers.filter(w => w.status !== '완료').forEach(w => items.push({ id:t.id, workerId:w.id, title:t.title, owner:w.name, dday:ddLabel(d),
+          kind:d > 0 ? `마감 ${d}일 전` : d === 0 ? '오늘 마감' : `마감 ${-d}일 경과`, channels:w.email ? '이메일 자동' : '💬 카톡 수동 (이메일 없음)', manual:!w.email, sent:false }));
+      });
+      return { date, sendTime:cfg.sendTime, items, reservations:V.filter(v => v.status === '대기' && v.at.startsWith(date)).map(v => ({ at:v.at.slice(11), name:v.name, title:v.taskTitle })) };
+    },
+    previewMessage: (id, off, wid) => {
+      const base = findT(id) || TB;
+      const t = agg(base), w = t.workers.find(x => x.id === wid) || t.workers[0];
+      if (off !== null && off !== 'request') t.dday = +off;
+      const kind = off === 'request' ? '업무 요청' : t.dday > 0 ? `마감 ${t.dday}일 전` : t.dday === 0 ? '오늘 마감' : `마감 ${-t.dday}일 경과`;
+      const v = vars(t, w, kind);
+      return { to:{ name:w.name, email:w.email || '(없음)' }, kind, dday:ddLabel(t.dday), subject:fill(cfg.mailSubject, v),
+        html:`<div style="font-family:sans-serif;font-size:14px;line-height:1.7"><div style="border-left:4px solid #2563eb;padding:4px 14px">${esc(fill(cfg.mailBody, v)).replace(/\n/g, '<br>')}</div><p style="margin-top:20px"><a href="#" style="background:#2563eb;color:#fff;padding:10px 20px;border-radius:6px;text-decoration:none;font-weight:bold">진행 현황 보고하기</a></p></div>`,
+        chat:fill(cfg.chatText, v), reportUrl:link(w) };
+    },
+    testSend: () => [{ channel:'이메일', ok:true }],
+    getTestSandbox: () => { const t = agg(TB); return { title:t.title, due:t.due, dday:t.dday, progress:t.progress, status:t.status,
+      workers:t.workers.map(w => ({ ...w, link: 'report.html' })), reports:R.filter(r => r.taskId === 'TEST') }; },
+    resetTestSandbox: () => { T = T.filter(x => x.id !== 'TEST'); R = R.filter(r => r.taskId !== 'TEST'); resetTB(); T.push(TB); return H.getTestSandbox(); },
+    runDaily: () => ({ targets:5, sent:3, manual:2 }),
+    runReservations: () => ({ processed:0 }),
+    getSettings: () => ({ ...cfg }),
+    getStatus: () => ({ repo:'', hasToken:false, pgNet:true }),
+    saveGithub: () => ({}),
+    saveSettings: s => { cfg = { ...cfg, ...s }; return cfg; },
+    changePassword: (o, n) => (n || '').length < 8 ? fail('새 비밀번호는 8자 이상이어야 합니다.') : true,
+    getLogs: () => L
+  };
+  return { call: (fn, args) => new Promise((res, rej) => setTimeout(() => { try { Promise.resolve(H[fn](...args)).then(res, rej); } catch (e) { rej(e); } }, 120)) };
+})();
+
+/* ================= 시작 ================= */
+function boot() {
+  const d = new Date();
+  $('#today').textContent = `오늘 ${d.getFullYear()}.${pad(d.getMonth()+1)}.${pad(d.getDate())} (${'일월화수목금토'[d.getDay()]})`;
+  go('dash');
+}
+(async function init() {
+  if (!HAS_GAS) { $('#demoBar').hidden = false; $('#btnLogout').hidden = true; boot(); return; }
+  try { $('#em').value = localStorage.getItem('dday-last-email') || ''; } catch (_) {}
+  try {
+    const s = await AdminAPI.Auth.session();
+    if (s && await AdminAPI.Auth.isAdmin()) { $('#who').textContent = s.user.email; boot(); return; }
+    if (s) await AdminAPI.Auth.logout();
+  } catch (e) { console.warn(e); }
+  showLogin('');
+})();
+</script>
+</body>
+</html>

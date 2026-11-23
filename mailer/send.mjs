@@ -29,7 +29,9 @@ export function defaultBase(env) {
 
 /** Supabase REST (service_role) */
 export function supabaseClient(url, key) {
-  const h = { apikey: key, Authorization: 'Bearer ' + key, 'Content-Type': 'application/json' };
+  // 예전 service_role 키(eyJ…)는 Authorization 에도, 새 비밀 키(sb_secret_…)는 apikey 에만
+  const h = { apikey: key, 'Content-Type': 'application/json' };
+  if (/^eyJ/.test(key)) h.Authorization = 'Bearer ' + key;
   const base = String(url).replace(/\/+$/, '');
   async function req(p, init) {
     const r = await fetch(base + p, Object.assign({ headers: h }, init));

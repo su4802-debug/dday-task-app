@@ -1,0 +1,34 @@
+name: 메일 발송기
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'      # 5분마다 (GitHub 사정에 따라 몇 분~십여 분 늦어질 수 있음)
+  workflow_dispatch:           # Actions 탭에서 수동 실행 · 관리자 화면 '즉시 발송'도 이것을 호출
+
+concurrency:
+  group: mailer
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: 준비
+        working-directory: mailer
+        run: npm install --no-audit --no-fund --omit=dev
+      - name: 메일 발송
+        run: node mailer/send.mjs
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          GMAIL_USER: ${{ secrets.GMAIL_USER }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          APP_URL: ${{ vars.APP_URL }}

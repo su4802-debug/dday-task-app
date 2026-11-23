@@ -780,6 +780,14 @@ end $$;
 -- 9. 권한 정리 — 작업자(anon)는 보고 함수 2개만, 관리자는 RLS + 관리자 함수, 발송기는 mailer_* 만
 -- ---------------------------------------------------------------------
 revoke all on all tables in schema public from anon;
+-- 관리자(로그인)는 표 권한 + RLS(is_admin) 로 접근, 발송기는 설정 읽기
+grant usage on schema public to authenticated, service_role;
+grant select, insert, update, delete on public.settings, public.tasks, public.workers, public.templates,
+  public.reports, public.reservations, public.mail_queue, public.logs to authenticated;
+grant select on public.admins to authenticated;
+revoke all on public.private_secrets from authenticated;
+grant usage, select on all sequences in schema public to authenticated;
+grant select on public.settings to service_role;
 revoke execute on all functions in schema public from public, anon, authenticated;
 
 grant execute on function public.report_load(text) to anon, authenticated;
