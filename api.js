@@ -253,8 +253,8 @@
       const mins = last ? Math.round((Date.parse(last.replace(' ', 'T') + ':00+09:00') - Date.now()) / -60000) : null;
       add('기본', '메일 발송기 (GitHub Actions)', !last ? 'ng' : mins > 30 ? 'warn' : 'ok',
         !last ? '아직 한 번도 실행되지 않음 — 저장소 Secrets 등록·Actions 활성화 확인' : '최근 실행 ' + last + ' (' + mins + '분 전)' + (mins > 30 ? ' — GitHub 예약 실행이 늦어지고 있습니다' : ''));
-      add('기본', '즉시 발송 (GitHub 토큰)', st.hasToken && st.pgNet ? 'ok' : 'info',
-        st.hasToken && st.pgNet ? '사용 중 — 저장 즉시 발송기를 깨움' : '미사용 — 5~15분 주기로 발송 (알림 설정 하단에서 등록 가능)');
+      const fm = DD.fastMailState(st);
+      add('기본', '즉시 발송 (1분 점검)', fm.state, fm.text);
       const today = st.today, nowHm = st.nowKst.slice(11);
       add('자동 알림', '매일 발송 시각', 'ok', c.sendTime + ' (5~15분 지연될 수 있음)');
       add('자동 알림', '오늘 자동 알림', c.lastDaily === today ? 'ok' : 'info',

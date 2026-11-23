@@ -521,7 +521,7 @@
   </form>
   <form class="card" id="ghForm" style="margin-top:14px;max-width:760px" autocomplete="off">
     <h3>⚡ 즉시 발송 (선택)</h3>
-    <div class="hint">등록하지 않아도 메일은 5~15분 주기로 발송됩니다. GitHub 토큰을 등록하면 저장·보고 직후 발송기를 바로 깨워 1~2분 안에 도착합니다.<br>
+    <div class="hint">GitHub 토큰을 등록하면 Supabase가 <b>1분마다</b> 보낼 메일을 확인해 발송기를 바로 깨웁니다 (보통 1~2분 안에 도착). 등록하지 않으면 GitHub 예약 실행에만 의존해 최대 1시간 늦어질 수 있습니다.<br>
       토큰: GitHub › Settings › Developer settings › <b>Fine-grained tokens</b> › 이 저장소만 선택 · 권한 <b>Actions: Read and write</b>. 저장한 토큰은 다시 볼 수 없습니다.</div>
     <div class="row" style="margin-top:8px"><input name="repo" placeholder="계정/저장소 (예: su4802-debug/dday-task-app)" class="btn" style="flex:1;cursor:text">
       <input type="password" name="token" placeholder="github_pat_… (비우면 유지)" class="btn" style="flex:1;cursor:text">
@@ -1440,7 +1440,8 @@ setForm.onsubmit = async e => {
 async function loadGh() {
   const st = await call('getStatus');
   $('#ghForm').elements.repo.value = st.repo || '';
-  $('#ghState').innerHTML = st.hasToken ? (st.pgNet ? '✅ 즉시 발송 사용 중' : '⚠️ 토큰은 있지만 pg_net 확장이 꺼져 있습니다 (Supabase › Database › Extensions › pg_net 켜기)') : 'ℹ️ 토큰 없음 — 5~15분 주기 발송';
+  const fm = DD.fastMailState(st);
+  $('#ghState').innerHTML = ({ ok: '✅ ', warn: '⚠️ ', ng: '❌ ', info: 'ℹ️ ' }[fm.state] || '') + esc(fm.text);
 }
 $('#ghForm').onsubmit = async e => {
   e.preventDefault();
@@ -1624,7 +1625,7 @@ const Demo = (() => {
     runDaily: () => ({ targets:5, sent:3, manual:2 }),
     runReservations: () => ({ processed:0 }),
     getSettings: () => ({ ...cfg }),
-    getStatus: () => ({ repo:'', hasToken:false, pgNet:true }),
+    getStatus: () => ({ repo:'', hasToken:false, pgNet:true, pgCron:true, cronJob:true }),
     saveGithub: () => ({}),
     saveSettings: s => { cfg = { ...cfg, ...s }; return cfg; },
     changePassword: (o, n) => (n || '').length < 8 ? fail('새 비밀번호는 8자 이상이어야 합니다.') : true,

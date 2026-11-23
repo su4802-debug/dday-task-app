@@ -194,8 +194,21 @@
     }
   }
 
+
+  /** 즉시 발송 상태 → {state:'ok'|'warn'|'info'|'ng', text} */
+  function fastMailState(st) {
+    if (!st.hasToken) return { state: 'info', text: '미사용 — GitHub 예약 실행에만 의존 (실제로는 최대 1시간 지연될 수 있음). 알림 설정 하단에서 토큰 등록' };
+    if (!st.pgNet) return { state: 'ng', text: '토큰은 있지만 pg_net 확장이 꺼져 있음 — Supabase › Database › Extensions › pg_net 켜기' };
+    if (st.pgCron === false || st.cronJob === false) return { state: 'warn', text: '저장 즉시 깨우기만 동작 — 1분 점검 작업이 없음. supabase/upgrade-fast-mail.sql 을 SQL Editor 에서 실행하세요' };
+    const c = st.lastDispatchCode;
+    if (c === 401 || c === 403) return { state: 'ng', text: '토큰 오류(' + c + ') — 토큰이 만료됐거나 권한(Actions: Read and write)이 없습니다. 새 토큰을 등록하세요' };
+    if (c === 404) return { state: 'ng', text: '저장소를 찾을 수 없음(404) — 저장소 이름 또는 토큰의 저장소 선택을 확인하세요' };
+    if (c && (c < 200 || c >= 300)) return { state: 'warn', text: '최근 깨우기 실패(' + c + ') ' + (st.lastDispatchErr || '') };
+    return { state: 'ok', text: '사용 중 — 1분마다 확인, 보낼 메일이 있으면 바로 발송기 실행' + (st.lastDispatch ? ' · 최근 깨움 ' + st.lastDispatch + (c ? ' (정상)' : ' (응답 대기)') : '') };
+  }
+
   root.DD = {
     esc, ddLabel, kindLabel, KIND_REQUEST, todayKst, nowKst, diffDays, addDays, fmtTs, kstInputToIso, isoToKstInput,
-    cleanBase, reportUrl, vars, fill, mailHtml, buildMsg, shareText, reportAdminMail, completeAdminMail, digestMail, renderQueued
+    cleanBase, reportUrl, fastMailState, vars, fill, mailHtml, buildMsg, shareText, reportAdminMail, completeAdminMail, digestMail, renderQueued
   };
 })(typeof window !== 'undefined' ? window : globalThis);

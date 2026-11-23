@@ -93,16 +93,20 @@
 - 마감예상일은 작업자 보고 중 **가장 늦은 날짜**로 자동 갱신
 - 메시지 변수: `{담당자}` `{업무명}` `{업무내용}` `{마감일}` `{마감예상일}` `{디데이}` `{진행률}` `{상태}` `{구분}` `{작업자목록}` `{전체진행률}` `{보고링크}` · 단체방용 `{작업자별링크}`
 
-## 메일이 나가는 시점
+## 메일이 나가는 시점 (빠른 발송 설정 — 꼭 권장)
 
-- 모든 메일은 **메일 대기열**에 쌓였다가 GitHub Actions 발송기가 처리합니다
-- GitHub 예약 실행은 5분 간격이지만 **혼잡하면 10~15분 늦어질 수 있습니다** (D-day 알림은 설정 시각 이후 첫 실행 때 발송)
-- **즉시 발송(선택)**: 알림 설정 하단에 GitHub 토큰을 등록하면 저장·보고 직후 발송기를 바로 깨워 1~2분 안에 도착
-  1. Supabase **Database → Extensions → `pg_net`** 켜기
-  2. GitHub **Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate**
+- 모든 메일은 **메일 대기열**에 쌓였다가 GitHub Actions 발송기가 보냅니다
+- GitHub 예약 실행만 쓰면 실제로는 **최대 1시간 정도 늦어질 수 있습니다**
+- **빠른 발송**을 설정하면 Supabase가 **1분마다** 보낼 메일을 확인해 발송기를 바로 깨웁니다 → 보통 **1~2분 안에 도착**
+  1. Supabase **SQL Editor** 에서 [`supabase/upgrade-fast-mail.sql`](supabase/upgrade-fast-mail.sql) 실행
+     (처음 설치라면 `schema.sql` 에 이미 포함)
+  2. GitHub 토큰 발급: https://github.com/settings/personal-access-tokens/new
+     - Token name `dday-mailer` · Expiration **366 days**
      - Repository access: **Only select repositories → dday-task-app**
-     - Permissions: **Actions → Read and write**
-  3. 관리자 페이지 **알림 설정 → ⚡ 즉시 발송**에 `su4802-debug/dday-task-app` 과 토큰 저장 (토큰은 다시 볼 수 없음)
+     - Permissions → Repository permissions → **Actions: Read and write** → Generate token
+  3. 관리자 페이지 **알림 설정 → ⚡ 즉시 발송** 에 `su4802-debug/dday-task-app` 과 토큰 저장
+  4. **테스트 → 시스템 점검**에서 "즉시 발송 (1분 점검)" ✅ 확인
+- 토큰은 만료일이 있습니다. 만료되면 시스템 점검에 ❌ 토큰 오류가 표시되니 새로 발급해 다시 저장하세요
 
 ## 보안
 
