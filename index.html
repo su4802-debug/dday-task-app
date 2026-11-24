@@ -200,6 +200,9 @@
   .switch input{position:absolute;left:0;top:2px;margin:0}
   .g2 > *,.g-form > *{min-width:0}
   .tc-grid{display:grid;grid-template-columns:2fr 1fr;gap:10px}
+  .kkbox{margin-top:12px;padding:12px;border:1px solid #f5e27a;background:#fffbe6;border-radius:12px}
+  .kkbtn{width:100%;min-height:46px;font-size:15px;font-weight:700}
+  .kkbox .hint{margin-top:6px}
   .tc-chips{gap:6px;margin:-2px 0 4px;align-items:center}
   .tc-chips .hint{margin-right:2px}
   #tcDd{margin-left:6px;font-size:11px;padding:1px 7px}
@@ -538,6 +541,9 @@
         <span class="hint">{보고링크}를 꼭 넣어 주세요.</span></div>
       <div class="f"><label>단체방용 (공동 작업자 전원이 있는 방에 보낼 때)</label><textarea name="chatGroupText" rows="9" style="background:#eef4fa"></textarea>
         <span class="hint"><code>{작업자별링크}</code> 자리에 "· 이름: 링크" 목록이 미완료 작업자 수만큼 들어갑니다.</span></div>
+      <div class="f" style="margin-top:6px"><label>💛 카카오톡 바로 보내기 — JavaScript 키</label>
+        <input name="kakaoJsKey" placeholder="카카오 개발자 › 내 애플리케이션 › 앱 키 › JavaScript 키 (32자리)" autocomplete="off" spellcheck="false">
+        <span class="hint">넣으면 [카톡] 창에 <b>[💬 카카오톡으로 보내기]</b> 버튼이 생깁니다 (카드형 메시지 + 진행 보고 버튼). 카카오 개발자 콘솔에 <code>https://su4802-debug.github.io</code> 도메인을 등록해야 동작합니다.</span></div>
     </div>
     <div style="grid-column:1/-1;display:flex;justify-content:flex-end"><button class="btn primary">설정 저장</button></div>
   </form>
@@ -632,18 +638,22 @@
   <div class="db one">
     <div class="lbl" style="margin-bottom:6px">누구에게 보낼까요?</div>
     <div class="tgt" id="shTargets"></div>
+    <div class="kkbox" style="margin:4px 0 12px" id="shKakaoBox" hidden>
+      <button type="button" class="btn kakao kkbtn" id="shKakao">💬 카카오톡으로 바로 보내기</button>
+      <div class="hint" id="shKakaoHint"></div>
+    </div>
     <div class="row" style="margin-bottom:8px">
       <select id="shMode" class="btn"><option value="auto">현재 D-day 기준</option><option value="request">업무 요청</option><option value="check">진행 확인 요청</option></select>
       <span class="hint" id="shWho"></span>
     </div>
     <textarea class="chatbox" id="shText"></textarea>
-    <div class="hint" style="margin-top:6px">내용은 보내기 전에 여기서 고쳐도 됩니다. 복사한 뒤 카톡 대화방에 붙여 넣으세요.</div>
+    <div class="hint" style="margin-top:6px" id="shHelp">↑ 아래 문구는 <b>[안내문 복사]</b>용입니다. 보내기 전에 여기서 고쳐도 되고, 복사한 뒤 카톡 대화방에 붙여 넣으세요.</div>
     <div class="row" id="shLinkRow" style="margin-top:10px"><span class="lbl">보고 링크</span><input id="shLink" class="btn" style="flex:1;cursor:text;font-size:12px" readonly></div>
   </div>
   <div class="df">
     <button class="btn" id="shCopyLink">링크만 복사</button>
     <button class="btn" id="shNative" hidden>휴대폰 공유…</button>
-    <button class="btn kakao" id="shCopy">안내문 복사</button>
+    <button class="btn" id="shCopy">안내문 복사</button>
   </div>
 </dialog>
 
@@ -1101,6 +1111,7 @@ async function loadShare(scope) {
   $('#shWho').textContent = d.scope === 'all' ? `${d.title} · 작업자 ${d.workers.length}명이 있는 단체방에 붙여 넣으세요`
     : `${d.name}님${d.phone ? ' · ' + d.phone : ''} — 카톡에서 이 사람을 찾아 붙여 넣으세요`;
   $('#shNative').hidden = !(navigator.share);
+  kakaoPrepare();
 }
 $('#shTargets').onclick = e => { const b = e.target.closest('[data-s]'); if (b) loadShare(b.dataset.s); };
 $('#shMode').onchange = () => loadShare(share.scope);
@@ -1108,6 +1119,56 @@ $('#shCopy').onclick = () => copyText($('#shText').value, '안내문을 복사�
 $('#shCopyLink').onclick = () => {
   if (share.scope === 'all') return copyText(share.data.workers.map(w => `${w.name}: ${w.link}`).join('\n'), '작업자별 링크를 복사했습니다.');
   copyText($('#shLink').value, '보고 링크를 복사했습니다.');
+};
+/* ---------- 카카오톡 바로 보내기 (Kakao JavaScript SDK) ---------- */
+const KAKAO_SDK = 'https://t1.kakaocdn.net/kakao_js_sdk/2.8.4/kakao.min.js';
+let kakaoKey = null, kakaoLoading = null, kakaoErr = '';
+function kakaoLoad() {
+  if (kakaoLoading) return kakaoLoading;
+  kakaoLoading = (async () => {
+    if (kakaoKey === null) { try { kakaoKey = String((await call('getSettings')).kakaoJsKey || '').trim(); } catch (e) { kakaoKey = ''; } }
+    if (!kakaoKey) return false;
+    if (!window.Kakao) await new Promise((ok, no) => { const sc = document.createElement('script'); sc.src = KAKAO_SDK; sc.crossOrigin = 'anonymous'; sc.onload = ok; sc.onerror = () => no(new Error('카카오 SDK를 불러오지 못했습니다 (인터넷 연결 확인)')); document.head.appendChild(sc); });
+    if (!Kakao.isInitialized()) Kakao.init(kakaoKey);
+    return true;
+  })().catch(e => { kakaoErr = e.message; kakaoLoading = null; return false; });
+  return kakaoLoading;
+}
+function kakaoReset() { kakaoKey = null; kakaoLoading = null; kakaoErr = ''; try { if (window.Kakao && Kakao.isInitialized()) Kakao.cleanup(); } catch (e) {} }
+async function kakaoPrepare() {
+  const box = $('#shKakaoBox');
+  if (!HAS_GAS) { box.hidden = true; return; }
+  const ok = await kakaoLoad();
+  box.hidden = false;
+  share.kk = ok ? DD.kakaoTemplates(share.data) : []; share.kkPart = 0;
+  const btn = $('#shKakao'), hint = $('#shKakaoHint');
+  btn.disabled = !ok || !share.kk.length;
+  if (!ok) {
+    btn.textContent = '💬 카카오톡으로 바로 보내기 (설정 필요)';
+    hint.innerHTML = kakaoErr ? esc(kakaoErr) : '<b>알림 설정</b> › 카톡 안내문 문구 › <b>카카오톡 바로 보내기 JavaScript 키</b>를 넣으면 사용할 수 있습니다.';
+    return;
+  }
+  kakaoBtnLabel();
+  const n = share.kk.length;
+  hint.innerHTML = !n ? '보낼 작업자가 없습니다 (모두 완료이거나 앱 주소 없음).'
+    : (share.scope === 'all'
+      ? `카톡 창에서 <b>공동 작업자 단체방</b>을 고르세요. 메시지에 작업자 이름이 나오고, 각자 <b>자기 이름</b>을 누르면 본인 보고 화면이 열립니다.${n > 1 ? ` (카카오 제한으로 3명씩 <b>${n}번</b>에 나눠 보냅니다)` : ''}`
+      : `카톡 창에서 <b>${esc(share.data.name)}</b>님(또는 대화방)을 고르세요. 카드의 <b>[진행 보고하기]</b> 버튼으로 바로 들어갑니다.`) +
+      ' <span class="sub">PC에서는 카카오 계정 로그인 창이 먼저 뜰 수 있습니다. 메시지 모양은 고정이며, 위 문구는 [안내문 복사]용입니다.</span>';
+}
+function kakaoBtnLabel() {
+  const n = share.kk.length, p = share.kkPart;
+  $('#shKakao').textContent = n > 1 ? (p >= n ? `✅ ${n}번 모두 보냈습니다 (다시 보내기)` : `💬 카카오톡으로 보내기 (${p + 1}/${n})`) : '💬 카카오톡으로 바로 보내기';
+}
+$('#shKakao').onclick = () => {
+  if (!share.kk || !share.kk.length) return;
+  if (share.kkPart >= share.kk.length) share.kkPart = 0;
+  try {
+    Kakao.Share.sendDefault(share.kk[share.kkPart]);
+    share.kkPart++; kakaoBtnLabel();
+  } catch (e) {
+    toast('카카오톡 보내기 실패: ' + (e.message || e) + ' — 카카오 개발자 콘솔의 JavaScript SDK 도메인에 https://su4802-debug.github.io 가 등록됐는지 확인하세요.', true);
+  }
 };
 $('#shNative').onclick = async () => { try { await navigator.share({ text: $('#shText').value }); } catch (e) { copyText($('#shText').value); } };
 
@@ -1517,7 +1578,7 @@ $('#btnRunRsv').onclick = async () => { const r = await call('runReservations');
 /* ================= 알림 설정 ================= */
 const DAY_OPTS = [30, 14, 10, 7, 5, 3, 2, 1, 0];
 const setForm = $('#setForm');
-const TXT = ['overdueEvery','sendTime','senderName','adminEmail','mailSubject','mailBody','chatText','chatGroupText','appUrl'];
+const TXT = ['overdueEvery','sendTime','senderName','adminEmail','mailSubject','mailBody','chatText','chatGroupText','appUrl','kakaoJsKey'];
 const CHK = ['adminDigest','notifyOnComplete','notifyOnReport'];
 async function loadSettings() {
   const s = await call('getSettings');
@@ -1537,7 +1598,9 @@ setForm.onsubmit = async e => {
   if (!s.remindDays) return toast('알림 시점을 하나 이상 선택하세요.', true);
   if (!/\{보고링크\}/.test(s.chatText) && !confirm('개인용 카톡 안내문에 {보고링크}가 없습니다. 그대로 저장할까요?')) return;
   if (!/\{작업자별링크\}/.test(s.chatGroupText) && !confirm('단체방용 안내문에 {작업자별링크}가 없습니다. 그대로 저장할까요?')) return;
-  await call('saveSettings', s); toast('설정을 저장했습니다.'); loadSettings();
+  s.kakaoJsKey = String(s.kakaoJsKey || '').trim();
+  if (s.kakaoJsKey && !/^[0-9a-f]{32}$/i.test(s.kakaoJsKey) && !confirm('카카오 JavaScript 키는 보통 32자리 영문·숫자입니다. 그대로 저장할까요?')) return;
+  await call('saveSettings', s); kakaoReset(); toast('설정을 저장했습니다.'); loadSettings();
 };
 async function loadGh() {
   const st = await call('getStatus');

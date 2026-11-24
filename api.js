@@ -152,7 +152,7 @@
   }
 
   const SETTING_KEYS = ['remindDays', 'overdueEvery', 'sendTime', 'senderName', 'adminEmail', 'adminDigest', 'notifyOnComplete',
-    'notifyOnReport', 'appUrl', 'mailSubject', 'mailBody', 'chatText', 'chatGroupText'];
+    'notifyOnReport', 'appUrl', 'mailSubject', 'mailBody', 'chatText', 'chatGroupText', 'kakaoJsKey'];
 
   const API = {
     getAppInfo: async () => ({ today: DD.todayKst(), url: baseOf(await cfg()), sendTime: (await cfg()).sendTime }),
@@ -278,6 +278,7 @@
       add('이메일', '발송 대기열', st.queueWait && oldMin > 30 ? 'warn' : 'ok',
         st.queueWait ? st.queueWait + '건 대기 (가장 오래된 것 ' + oldMin + '분 전)' : '대기 없음');
       add('이메일', '최근 24시간 발송 실패', st.fail24 ? 'warn' : 'ok', st.fail24 ? st.fail24 + '건 — [발송 로그] 확인' : '없음');
+      add('카톡 안내문', '카카오톡 바로 보내기', c.kakaoJsKey ? 'ok' : 'info', c.kakaoJsKey ? 'JavaScript 키 등록됨 — [카톡] 창에서 바로 보내기 사용 (도메인 미등록 시 보낼 때 오류)' : '미사용 — 알림 설정에 카카오 JavaScript 키를 넣으면 복사 없이 바로 보낼 수 있음');
       add('카톡 안내문', '개인용 문구에 {보고링크}', /\{보고링크\}/.test(c.chatText) ? 'ok' : 'warn',
         /\{보고링크\}/.test(c.chatText) ? '포함' : '없음 — 작업자가 보고 페이지로 들어갈 수 없음');
       add('카톡 안내문', '단체방용 문구에 {작업자별링크}', /\{작업자별링크\}/.test(c.chatGroupText) ? 'ok' : 'warn',

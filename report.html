@@ -225,7 +225,7 @@ const Demo = (() => {
 
 (async function init() {
   if (!HAS_GAS) $('#demo').hidden = false;
-  else if (!RTOKEN) { $('#app').innerHTML = `<div class="card msg"><div class="big">🔗</div><b class="err">보고 링크가 올바르지 않습니다.</b><br>받은 메일·카톡의 링크를 다시 눌러 주세요.</div>`; return; }
+  else if (!RTOKEN) { $('#app').innerHTML = `<div class="card msg"><div class="big">🔗</div><b>본인 보고 화면으로 들어가 주세요</b><br>카톡 메시지에서 <b>본인 이름</b>을 누르거나, 받은 메일의 [진행 현황 보고하기]를 눌러 주세요.</div>`; return; }
   try { render(await api('reportLoad', RTOKEN)); }
   catch (e) { $('#app').innerHTML = `<div class="card msg"><div class="big">⚠️</div><b class="err">${esc(e.message || e)}</b></div>`; }
 })();

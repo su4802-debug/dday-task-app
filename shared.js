@@ -86,15 +86,16 @@
   function shareText(t, scope, mode, cfg, base) {
     const kind = mode === 'request' ? KIND_REQUEST : mode === 'check' ? '진행 확인 요청'
       : (t.status === '완료' ? '완료 확인' : t.dday === null ? '진행 확인 요청' : kindLabel(t.dday));
-    const workers = t.workers.map(w => ({ id: w.id, name: w.name, phone: w.phone, email: w.email, status: w.status, link: reportUrl(base, w.token) }));
+    const workers = t.workers.map(w => ({ id: w.id, name: w.name, phone: w.phone, email: w.email, status: w.status, progress: w.progress || 0, link: reportUrl(base, w.token) }));
+    const extra = { due: t.due, dday: t.dday, progress: t.progress || 0, base: cleanBase(base) };
     if (scope === 'all' || (!scope && t.workers.length > 1)) {
       const v = vars(t, t.workers[0], kind, base);
       v['작업자별링크'] = t.workers.filter(w => w.status !== '완료').map(w => '· ' + w.name + ': ' + reportUrl(base, w.token)).join('\n') || '(모두 완료)';
-      return { scope: 'all', kind: kind, text: fill(cfg.chatGroupText, v), link: '', workers: workers, title: t.title };
+      return Object.assign({ scope: 'all', kind: kind, text: fill(cfg.chatGroupText, v), link: '', workers: workers, title: t.title }, extra);
     }
     const w = t.workers.filter(x => x.id === scope)[0] || t.workers[0];
-    return { scope: w.id, kind: kind, text: fill(cfg.chatText, vars(t, w, kind, base)), link: reportUrl(base, w.token), workers: workers,
-      title: t.title, name: w.name, phone: w.phone };
+    return Object.assign({ scope: w.id, kind: kind, text: fill(cfg.chatText, vars(t, w, kind, base)), link: reportUrl(base, w.token), workers: workers,
+      title: t.title, name: w.name, phone: w.phone }, extra);
   }
 
   function teamLine(t) {
@@ -207,8 +208,46 @@
     return { state: 'ok', text: '사용 중 — 1분마다 확인, 보낼 메일이 있으면 바로 발송기 실행' + (st.lastDispatch ? ' · 최근 깨움 ' + st.lastDispatch + (c ? ' (정상)' : ' (응답 대기)') : '') };
   }
 
+
+  /** 카카오톡 공유 메시지 (Kakao.Share.sendDefault 에 넣을 객체 목록 — 여러 개면 나눠 보냄)
+   *  d = shareText() 결과.  개인: 카드 + [진행 보고하기] 버튼 / 단체: 작업자별 이름 목록(각자 링크, 3명씩) */
+  function kakaoTemplates(d) {
+    const ln = u => ({ mobileWebUrl: u, webUrl: u });
+    const dd = ddLabel(d.dday), img = d.base ? d.base + 'kakao-card.png' : '';
+    const head = '[' + d.kind + '] ' + d.title;
+    const card = w => ({
+      objectType: 'feed',
+      content: Object.assign({ title: head, description: w.name + '님 · 마감 ' + d.due + ' (' + dd + ') · 내 진행률 ' + w.progress + '%', link: ln(w.link) },
+        img ? { imageUrl: img, imageWidth: 800, imageHeight: 400 } : {}),
+      buttons: [{ title: '진행 보고하기', link: ln(w.link) }]
+    });
+    if (d.scope !== 'all') {
+      const w = d.workers.filter(x => x.id === d.scope)[0];
+      return w && w.link ? [card(w)] : [];
+    }
+    const todo = d.workers.filter(w => w.status !== '완료' && w.link);
+    if (!todo.length) return [];
+    if (todo.length === 1) return [card(todo[0])];
+    const parts = Math.ceil(todo.length / 3), out = [];
+    let i = 0;
+    for (let p = 0; p < parts; p++) {                       // 고르게 나눔 (예: 7명 → 3·2·2)
+      const size = Math.floor(todo.length / parts) + (p < todo.length % parts ? 1 : 0);
+      const grp = todo.slice(i, i + size); i += size;
+      out.push({
+        objectType: 'list',
+        headerTitle: (head + ' · 마감 ' + d.due + ' (' + dd + ')' + (parts > 1 ? ' (' + (p + 1) + '/' + parts + ')' : '')).slice(0, 200),
+        headerLink: ln(d.base + 'report.html'),
+        contents: grp.map(item)
+      });
+    }
+    return out;
+    function item(w) {
+      return { title: w.name + '님 — 눌러서 보고하기', description: '내 진행률 ' + w.progress + '% · ' + w.status, link: ln(w.link) };
+    }
+  }
+
   root.DD = {
     esc, ddLabel, kindLabel, KIND_REQUEST, todayKst, nowKst, diffDays, addDays, fmtTs, kstInputToIso, isoToKstInput,
-    cleanBase, reportUrl, fastMailState, vars, fill, mailHtml, buildMsg, shareText, reportAdminMail, completeAdminMail, digestMail, renderQueued
+    cleanBase, reportUrl, fastMailState, kakaoTemplates, vars, fill, mailHtml, buildMsg, shareText, reportAdminMail, completeAdminMail, digestMail, renderQueued
   };
 })(typeof window !== 'undefined' ? window : globalThis);
