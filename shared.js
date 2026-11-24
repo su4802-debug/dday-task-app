@@ -186,8 +186,8 @@
         const custom = q.kind === 'reserve' ? { subject: p.subject, body: p.body } : null;
         const m = buildMsg(t, w, kind, cfg, base, custom);
         return {
-          subject: (q.kind === 'test' ? '[테스트] ' : '') + m.subject, html: m.html, toName: w.name, title: t.title,
-          kind: q.kind === 'test' ? '테스트' : kind,
+          subject: ((q.kind === 'test' || t.isTest) && m.subject.indexOf('[테스트]') < 0 ? '[테스트] ' : '') + m.subject, html: m.html, toName: w.name, title: t.title,
+          kind: q.kind === 'test' || t.isTest ? '테스트' : kind,
           mode: q.kind === 'remind' ? '자동' : q.kind === 'reserve' ? '예약' : '수동'
         };
       }

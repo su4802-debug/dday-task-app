@@ -234,6 +234,18 @@
     sendReservationNow: id => rpc('admin_send_reservation', { p_id: id }),
 
     getTestSandbox,
+    /** 테스트 업무를 화면 구성대로 저장 (없으면 만들고, 작업자는 개인 1명 ~ 공동 여러 명) */
+    saveTestTask: async d => {
+      if (!d.due) throw new Error('마감일을 지정하세요.');
+      const workers = cleanWorkers(d.workers);
+      const ex = await q(sb.from('tasks').select('id').eq('id', 'TEST'));
+      if (!ex.length) await rpc('admin_reset_test_task');           // ID 'TEST' 로 새로 만든 뒤 아래에서 구성 반영
+      await rpc('admin_save_task', { p: {
+        id: 'TEST', title: String(d.title || '[테스트] 샘플 업무'), due: d.due, expected: '', memo: '테스트 — 자동 알림 제외',
+        desc: '테스트용 업무입니다. 입력하면 실제 데이터로 기록되며, 관리자 페이지 [테스트] 탭에서 초기화할 수 있습니다.',
+        workers: workers.map(w => ({ id: w.id, name: w.name, phone: w.phone, email: w.email })) } });
+      return oneTask('TEST');
+    },
     resetTestSandbox: async () => {
       // 테스트 업무를 완전히 삭제 (업무 현황에서도 사라짐). 테스트 메일·카톡 테스트를 다시 쓰면 새로 만들어짐
       await q(sb.from('reports').delete().eq('task_id', 'TEST'));
