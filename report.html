@@ -80,6 +80,7 @@
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4"></script>
 <script src="config.js"></script>
+<script src="shared.js"></script>
 </head>
 <body>
 <div class="demo" id="demo" hidden>미리보기 모드 — 샘플 업무로 표시됩니다 (저장 안 됨)</div>
@@ -159,11 +160,8 @@ function render(d) {
     </form>`;
   }
 
-  if (d.reports && d.reports.length) {
-    html += `<div class="card"><h2>최근 보고${multi ? ' (전체 작업자)' : ''}</h2>` + d.reports.map(r =>
-      `<div class="item ${r.owner === me.name ? 'mine' : ''}"><div class="h">${esc(r.at)}${multi ? ' · <b>' + esc(r.owner) + '</b>' : ''} · ${r.prevProgress}% → <b>${r.progress}%</b> · ${esc(r.status)}${r.expected ? ' · 예상 ' + esc(r.expected) : ''}</div>
-       <div class="c">${esc(r.content)}</div></div>`).join('') + `</div>`;
-  }
+  html += `<div class="card"><h2>📋 진행 보고 기록${multi ? ' <span class="sub" style="font-weight:500;font-size:12.5px">(공동 작업자 전체)</span>' : ''}</h2>` +
+    DD.reportLog(d.reports, { me: me.name, multi, fold: 10 }) + `</div>`;
   $('#app').innerHTML = html;
   if (!meDone) bind(t);
 }

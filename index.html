@@ -1004,8 +1004,8 @@ async function openDetail(t) {
       <td class="act"><button class="btn sm kakao" data-wact="share">카톡</button><button class="btn sm" data-wact="mail" ${w.email && w.status !== '완료' ? '' : 'disabled'}>메일</button>
         <button class="btn sm" data-wact="${w.status === '완료' ? 'undo' : 'done'}">${w.status === '완료' ? '완료 해제' : '완료'}</button></td></tr>`).join('')}
     </tbody></table></div>
-    <h3 style="font-size:15px;margin:0 0 10px">📝 진행 보고 이력 (${reps.length}건)</h3>
-    <div class="timeline">${reps.length ? reps.map(r => `<div class="it"><div class="h">${esc(r.at)} · <b>${esc(r.owner)}</b> · ${r.prevProgress}% → <b>${r.progress}%</b> · ${esc(r.status)}${r.expected ? ' · 예상 ' + esc(r.expected) : ''}</div><div class="c">${esc(r.content)}</div></div>`).join('') : '<div class="hint">아직 보고가 없습니다.</div>'}</div>`;
+    <h3 style="font-size:15px;margin:0 0 10px">📋 진행 보고 기록</h3>
+    ${DD.reportLog(reps, { multi: t.workers.length > 1, fold: 20 })}`;
   $('#dtHint').textContent = t.updated ? '최종 수정 ' + t.updated : '';
   if (!$('#detailDlg').open) $('#detailDlg').showModal();
 }
@@ -1822,7 +1822,7 @@ function boot() {
 function labelTables(root) {
   (root || document).querySelectorAll('table').forEach(tb => {
     const th = tb.tHead && tb.tHead.rows[0];
-    if (!th) return;
+    if (!th || tb.classList.contains('rlog')) return;      // 보고 기록 표는 그대로
     tb.classList.add('rt');
     const names = [];
     [...th.cells].forEach(c => { for (let i = 0; i < (c.colSpan || 1); i++) names.push(c.querySelector('input') ? '' : c.textContent.replace(/\s*\(.*?\)\s*/g, '').trim()); });

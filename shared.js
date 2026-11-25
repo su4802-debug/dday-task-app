@@ -246,8 +246,66 @@
     }
   }
 
+
+  /** 'YYYY-MM-DD HH:mm' → {d:'26.11.07', t:'14:30'} */
+  function shortTs(at) {
+    const m = String(at || '').match(/^\d{2}(\d{2})-(\d{2})-(\d{2})[ T](\d{2}:\d{2})/);
+    return m ? { d: m[1] + '.' + m[2] + '.' + m[3], t: m[4] } : { d: String(at || ''), t: '' };
+  }
+  const RLOG_CSS = '.rlog{width:100%;border-collapse:separate;border-spacing:0;font-size:14px;border:1px solid #e4e7ec;border-radius:12px;overflow:hidden;background:#fff}' +
+    '.rlog th{background:#f9fafb;color:#667085;font-size:12px;font-weight:600;text-align:left;padding:8px 12px;border-bottom:1px solid #e4e7ec}' +
+    '.rlog td{padding:11px 12px;border-bottom:1px solid #eef0f3;vertical-align:top;text-align:left}' +
+    '.rlog tr:last-child td{border-bottom:0}' +
+    '.rlog td.when{width:78px;white-space:nowrap;background:#fbfcfe;border-right:1px solid #eef0f3}' +
+    '.rlog td.when b{display:block;font-size:13.5px;color:#101828;font-variant-numeric:tabular-nums;letter-spacing:-.01em}' +
+    '.rlog td.when span{font-size:12.5px;color:#667085;font-variant-numeric:tabular-nums}' +
+    '.rlog td.when i{display:block;font-style:normal;font-size:11px;color:#98a2b3;margin-top:4px}' +
+    '.rlog tr.mine td.when{box-shadow:inset 3px 0 0 #1f4fd8}' +
+    '.rlog .meta{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:12.5px;color:#667085;margin-bottom:5px}' +
+    '.rlog .who{font-weight:700;color:#101828}' +
+    '.rlog .pg{font-weight:700;color:#101828;font-variant-numeric:tabular-nums}' +
+    '.rlog .up{color:#027a48;font-weight:600}.rlog .dn{color:#b42318;font-weight:600}' +
+    '.rlog .mbar{display:inline-block;width:54px;height:6px;border-radius:3px;background:#eef0f3;overflow:hidden;vertical-align:middle}' +
+    '.rlog .mbar>i{display:block;height:100%;background:#1f4fd8}.rlog .mbar>i.ok{background:#12b76a}' +
+    '.rlog .st{padding:1px 8px;border-radius:999px;font-size:11.5px;font-weight:600;background:#eef0f3;color:#344054}' +
+    '.rlog .st.s-진행중{background:#eaf0ff;color:#1f4fd8}.rlog .st.s-완료{background:#e7f8ef;color:#027a48}.rlog .st.s-보류{background:#fff4e5;color:#b54708}' +
+    '.rlog .txt{white-space:pre-wrap;word-break:break-word;line-height:1.55;color:#101828}' +
+    '.rlog-bar{display:flex;align-items:center;gap:8px;margin:0 0 8px;flex-wrap:wrap}.rlog-bar .cnt{font-size:12.5px;color:#667085}' +
+    '.rlog-bar button{border:1px solid #e4e7ec;background:#fff;border-radius:999px;padding:4px 11px;font-size:12.5px;cursor:pointer;color:#344054}' +
+    '.rlog-bar button.on{background:#101828;border-color:#101828;color:#fff}' +
+    '.rlog-wrap.only-mine tr:not(.mine){display:none}' +
+    '.rlog-wrap.fold tr.more{display:none}' +
+    '.rlog-more{display:block;width:100%;margin-top:8px;border:1px dashed #d0d5dd;background:#fff;border-radius:10px;padding:9px;font-size:13px;color:#344054;cursor:pointer}';
+  /** 진행 보고 기록 표 (최신순).  opts: {me: 내 이름, multi: 작업자 여러 명, fold: 처음에 보일 건수} */
+  function reportLog(reports, opts) {
+    opts = opts || {};
+    const list = reports || [];
+    if (typeof document !== 'undefined' && !document.getElementById('rlog-css')) {
+      const st = document.createElement('style'); st.id = 'rlog-css'; st.textContent = RLOG_CSS; document.head.appendChild(st);
+    }
+    if (!list.length) return '<div class="rlog-empty" style="color:#667085;font-size:13px;padding:6px 2px">아직 보고 기록이 없습니다.</div>';
+    const fold = opts.fold || 0, mineCnt = opts.me ? list.filter(r => r.owner === opts.me).length : 0;
+    const rows = list.map((r, i) => {
+      const ts = shortTs(r.at), delta = (r.progress || 0) - (r.prevProgress || 0);
+      const dTxt = delta > 0 ? '<span class="up">▲' + delta + '%p</span>' : delta < 0 ? '<span class="dn">▼' + (-delta) + '%p</span>' : '';
+      const cls = [opts.me && r.owner === opts.me ? 'mine' : '', fold && i >= fold ? 'more' : ''].join(' ').trim();
+      return '<tr' + (cls ? ' class="' + cls + '"' : '') + '><td class="when"><b>' + esc(ts.d) + '</b><span>' + esc(ts.t) + '</span><i>' + (list.length - i) + '회차</i></td><td>' +
+        '<div class="meta">' + (opts.multi ? '<span class="who">' + esc(r.owner) + '</span>' : '') +
+        '<span class="pg">' + (r.prevProgress || 0) + '% → ' + (r.progress || 0) + '%</span>' + dTxt +
+        '<span class="mbar"><i class="' + (r.status === '완료' ? 'ok' : '') + '" style="width:' + Math.max(0, Math.min(100, r.progress || 0)) + '%"></i></span>' +
+        '<span class="st s-' + esc(r.status) + '">' + esc(r.status) + '</span>' +
+        (r.expected ? '<span>예상 ' + esc(String(r.expected).slice(2).replace(/-/g, '.')) + '</span>' : '') + '</div>' +
+        '<div class="txt">' + esc(r.content) + '</div></td></tr>';
+    }).join('');
+    const bar = '<div class="rlog-bar"><span class="cnt">총 <b>' + list.length + '</b>건 · 최신순</span>' +
+      (opts.multi && mineCnt ? '<span style="flex:1"></span><button type="button" class="on" onclick="var w=this.closest(\'.rlog-wrap\');w.classList.remove(\'only-mine\');this.className=\'on\';this.nextSibling.className=\'\'">전체</button><button type="button" onclick="var w=this.closest(\'.rlog-wrap\');w.classList.add(\'only-mine\');this.className=\'on\';this.previousSibling.className=\'\'">내 보고 (' + mineCnt + ')</button>' : '') + '</div>';
+    const more = fold && list.length > fold ? '<button type="button" class="rlog-more" onclick="var w=this.closest(\'.rlog-wrap\');w.classList.remove(\'fold\');this.remove()">이전 기록 ' + (list.length - fold) + '건 더 보기</button>' : '';
+    return '<div class="rlog-wrap' + (fold && list.length > fold ? ' fold' : '') + '">' + bar +
+      '<table class="rlog"><thead><tr><th>일시</th><th>진행 현황</th></tr></thead><tbody>' + rows + '</tbody></table>' + more + '</div>';
+  }
+
   root.DD = {
     esc, ddLabel, kindLabel, KIND_REQUEST, todayKst, nowKst, diffDays, addDays, fmtTs, kstInputToIso, isoToKstInput,
-    cleanBase, reportUrl, fastMailState, kakaoTemplates, vars, fill, mailHtml, buildMsg, shareText, reportAdminMail, completeAdminMail, digestMail, renderQueued
+    cleanBase, reportUrl, fastMailState, kakaoTemplates, shortTs, reportLog, vars, fill, mailHtml, buildMsg, shareText, reportAdminMail, completeAdminMail, digestMail, renderQueued
   };
 })(typeof window !== 'undefined' ? window : globalThis);

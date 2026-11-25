@@ -321,7 +321,7 @@ begin
                from workers x where x.task_id = t.id),
     'reports', coalesce((select json_agg(r) from (
                  select fmt_ts(at) as at, worker_name as owner, prev_progress as "prevProgress", progress, status, expected, content
-                   from reports where task_id = t.id order by at desc limit 15) r), '[]'::json),
+                   from reports where task_id = t.id order by at desc limit 300) r), '[]'::json),
     'senderName', coalesce(nullif(setting('senderName'), ''), '업무알림')
   );
 end $$;
