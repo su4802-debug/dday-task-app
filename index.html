@@ -395,7 +395,7 @@
     <span class="sp"></span><span class="count" id="rCount"></span>
   </div>
   <div class="panel"><table class="wide">
-    <thead><tr><th>보고일시</th><th>업무</th><th>작업자</th><th>진행률</th><th>상태</th><th>마감예상일</th><th>보고 내용</th></tr></thead>
+    <thead><tr><th>업무</th><th>작업자</th><th>진행률</th><th>상태</th><th>마감예상일</th><th>보고일시</th><th>보고 내용</th></tr></thead>
     <tbody id="rBody"></tbody></table></div>
 </section>
 
@@ -1318,9 +1318,9 @@ function renderReports() {
   const list = reports.filter(r => (!o || r.owner === o) && (!s || r.status === s) && (!q || [r.title, r.owner, r.content].join(' ').toLowerCase().includes(q)));
   $('#rCount').textContent = list.length + '건 (최근 500건)';
   $('#rBody').innerHTML = list.length ? list.map(r => `<tr>
-    <td style="white-space:nowrap">${esc(r.at)}</td><td><b>${esc(r.title)}</b></td><td>${esc(r.owner)}</td>
+    <td><b>${esc(r.title)}</b></td><td>${esc(r.owner)}</td>
     <td style="white-space:nowrap">${r.prevProgress}% → <b>${r.progress}%</b></td><td><span class="chip s-${esc(r.status)}">${esc(r.status)}</span></td>
-    <td>${esc(r.expected || '-')}</td><td style="white-space:pre-wrap;min-width:300px">${esc(r.content)}</td></tr>`).join('')
+    <td>${esc(r.expected || '-')}</td><td style="white-space:nowrap">${esc(r.at)}</td><td style="white-space:pre-wrap;min-width:300px">${esc(r.content)}</td></tr>`).join('')
     : '<tr><td colspan="7" class="empty">보고 내역이 없습니다. 작업자가 메일·카톡으로 받은 링크에서 보고하면 여기에 쌓입니다.</td></tr>';
 }
 ['#rq', '#rOwner', '#rStatus'].forEach(s => $(s).addEventListener('input', renderReports));
