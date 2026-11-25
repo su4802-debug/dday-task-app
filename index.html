@@ -543,7 +543,7 @@
         <span class="hint"><code>{작업자별링크}</code> 자리에 "· 이름: 링크" 목록이 미완료 작업자 수만큼 들어갑니다.</span></div>
       <div class="f" style="margin-top:6px"><label>💛 카카오톡 바로 보내기 — JavaScript 키</label>
         <input name="kakaoJsKey" placeholder="카카오 개발자 › 내 애플리케이션 › 앱 키 › JavaScript 키 (32자리)" autocomplete="off" spellcheck="false">
-        <span class="hint">넣으면 [카톡] 창에 <b>[💬 카카오톡으로 보내기]</b> 버튼이 생깁니다 (카드형 메시지 + 진행 보고 버튼). 카카오 개발자 콘솔에 <code>https://su4802-debug.github.io</code> 도메인을 등록해야 동작합니다.</span></div>
+        <span class="hint">비워 두면 config.js 의 키를 씁니다. 넣으면 [카톡] 창에 <b>[💬 카카오톡으로 보내기]</b> 버튼이 생깁니다 (카드형 메시지 + 진행 보고 버튼). 카카오 개발자 콘솔에 <code>https://su4802-debug.github.io</code> 도메인을 등록해야 동작합니다.</span></div>
     </div>
     <div style="grid-column:1/-1;display:flex;justify-content:flex-end"><button class="btn primary">설정 저장</button></div>
   </form>
@@ -1126,7 +1126,7 @@ let kakaoKey = null, kakaoLoading = null, kakaoErr = '';
 function kakaoLoad() {
   if (kakaoLoading) return kakaoLoading;
   kakaoLoading = (async () => {
-    if (kakaoKey === null) { try { kakaoKey = String((await call('getSettings')).kakaoJsKey || '').trim(); } catch (e) { kakaoKey = ''; } }
+    if (kakaoKey === null) { try { kakaoKey = String((await call('getSettings')).kakaoJsKey || (window.APP_CONFIG || {}).KAKAO_JS_KEY || '').trim(); } catch (e) { kakaoKey = ''; } }
     if (!kakaoKey) return false;
     if (!window.Kakao) await new Promise((ok, no) => { const sc = document.createElement('script'); sc.src = KAKAO_SDK; sc.crossOrigin = 'anonymous'; sc.onload = ok; sc.onerror = () => no(new Error('카카오 SDK를 불러오지 못했습니다 (인터넷 연결 확인)')); document.head.appendChild(sc); });
     if (!Kakao.isInitialized()) Kakao.init(kakaoKey);
