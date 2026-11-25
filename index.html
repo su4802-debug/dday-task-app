@@ -200,6 +200,12 @@
   .switch input{position:absolute;left:0;top:2px;margin:0}
   .g2 > *,.g-form > *{min-width:0}
   .tc-grid{display:grid;grid-template-columns:2fr 1fr;gap:10px}
+  #rBody td.rg-key{vertical-align:top;background:#fbfcfe;border-right:1px solid var(--line2)}
+  #rBody tr.rg-alt td.rg-key{background:#f6f8fc}
+  #rBody tr.rg-first td{border-top:2px solid var(--line)}
+  #rBody tr:first-child td{border-top:0}
+  #rBody tr.rg-cont td{border-top:1px dashed var(--line2)}
+  #rBody .up{color:#027a48;font-size:12px;font-weight:600} #rBody .dn{color:#b42318;font-size:12px;font-weight:600}
   .kkbox{margin-top:12px;padding:12px;border:1px solid #f5e27a;background:#fffbe6;border-radius:12px}
   .kkbtn{width:100%;min-height:46px;font-size:15px;font-weight:700}
   .kkbox .hint{margin-top:6px}
@@ -288,6 +294,15 @@
     .toolbar select{flex:1 1 30%}
     .toolbar #btnDashAdd{flex:1 1 100%;order:-1}
     .tc-grid{grid-template-columns:1fr}
+    #rBody tr.rg{margin:0;border-radius:0;border-top:0}
+    #rBody tr.rg-first{border-top:1px solid var(--line);border-radius:14px 14px 0 0;margin-top:10px}
+    #rBody tr.rg-last{border-radius:0 0 14px 14px}
+    #rBody tr.rg-first.rg-last{border-radius:14px}
+    #rBody tr.rg-cont{border-top:1px dashed var(--line);box-shadow:none}
+    #rBody td.rg-key{background:transparent!important;border-right:0;padding-left:0;font-size:15px}
+    #rBody td.rg-key::before{display:none}
+    #rBody td.rg-key + td.rg-key{padding-bottom:8px;margin-bottom:4px;border-bottom:1px solid var(--line2)}
+    #rBody td{border-top:0!important}
 
     /* 작업자 입력 */
     .wedit .wh{flex-wrap:wrap}
@@ -1317,10 +1332,23 @@ function renderReports() {
   const q = $('#rq').value.trim().toLowerCase(), o = $('#rOwner').value, s = $('#rStatus').value;
   const list = reports.filter(r => (!o || r.owner === o) && (!s || r.status === s) && (!q || [r.title, r.owner, r.content].join(' ').toLowerCase().includes(q)));
   $('#rCount').textContent = list.length + '건 (최근 500건)';
-  $('#rBody').innerHTML = list.length ? list.map(r => `<tr>
-    <td><b>${esc(r.title)}</b></td><td>${esc(r.owner)}</td>
-    <td style="white-space:nowrap">${r.prevProgress}% → <b>${r.progress}%</b></td><td><span class="chip s-${esc(r.status)}">${esc(r.status)}</span></td>
-    <td>${esc(r.expected || '-')}</td><td style="white-space:nowrap">${esc(r.at)}</td><td style="white-space:pre-wrap;min-width:300px">${esc(r.content)}</td></tr>`).join('')
+  // 같은 업무 + 같은 작업자 → 한 묶음 (업무·작업자 칸 병합, 보고는 최신순으로 아래로)
+  const groups = [], gmap = {};
+  list.forEach(r => {
+    const k = r.taskId + '|' + (r.workerId || r.owner);
+    if (!gmap[k]) { gmap[k] = { title: r.title, owner: r.owner, rows: [] }; groups.push(gmap[k]); }
+    gmap[k].rows.push(r);
+  });
+  $('#rBody').innerHTML = groups.length ? groups.map((g, gi) => g.rows.map((r, i) => {
+    const d = r.progress - r.prevProgress;
+    return `<tr class="rg ${gi % 2 ? 'rg-alt' : ''} ${i === 0 ? 'rg-first' : 'rg-cont'} ${i === g.rows.length - 1 ? 'rg-last' : ''}">` +
+      (i === 0 ? `<td rowspan="${g.rows.length}" class="rg-key"><b>${esc(g.title)}</b></td>
+        <td rowspan="${g.rows.length}" class="rg-key">${esc(g.owner)}<div class="sub">${g.rows.length}회 보고</div></td>` : '') +
+      `<td style="white-space:nowrap">${r.prevProgress}% → <b>${r.progress}%</b>${d > 0 ? ` <span class="up">▲${d}</span>` : d < 0 ? ` <span class="dn">▼${-d}</span>` : ''}</td>
+      <td><span class="chip s-${esc(r.status)}">${esc(r.status)}</span></td>
+      <td style="white-space:nowrap">${esc(r.expected || '-')}</td><td style="white-space:nowrap">${esc(r.at)}</td>
+      <td style="white-space:pre-wrap;min-width:300px">${esc(r.content)}</td></tr>`;
+  }).join('')).join('')
     : '<tr><td colspan="7" class="empty">보고 내역이 없습니다. 작업자가 메일·카톡으로 받은 링크에서 보고하면 여기에 쌓입니다.</td></tr>';
 }
 ['#rq', '#rOwner', '#rStatus'].forEach(s => $(s).addEventListener('input', renderReports));
@@ -1826,10 +1854,20 @@ function labelTables(root) {
     tb.classList.add('rt');
     const names = [];
     [...th.cells].forEach(c => { for (let i = 0; i < (c.colSpan || 1); i++) names.push(c.querySelector('input') ? '' : c.textContent.replace(/\s*\(.*?\)\s*/g, '').trim()); });
-    [...tb.tBodies].forEach(b => [...b.rows].forEach(r => {
-      let i = 0;
-      [...r.cells].forEach(c => { if (!c.hasAttribute('data-label')) c.setAttribute('data-label', names[i] || ''); i += c.colSpan || 1; });
-    }));
+    [...tb.tBodies].forEach(b => {
+      const busy = [];                                         // 위 줄의 병합(rowspan) 칸이 차지한 열
+      [...b.rows].forEach(r => {
+        let i = 0;
+        [...r.cells].forEach(c => {
+          while (busy[i] > 0) i++;
+          if (!c.hasAttribute('data-label')) c.setAttribute('data-label', names[i] || '');
+          const span = c.colSpan || 1, rs = c.rowSpan || 1;
+          for (let k = 0; k < span; k++) busy[i + k] = rs;
+          i += span;
+        });
+        for (let k = 0; k < busy.length; k++) if (busy[k] > 0) busy[k]--;
+      });
+    });
   });
 }
 let _lblPending = false;
