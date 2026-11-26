@@ -79,6 +79,16 @@ create table if not exists public.tasks (
   constraint tasks_status_chk check (status in ('대기', '진행중', '보류', '완료'))
 );
 
+-- 중요도(3 높음 / 2 보통 / 1 낮음) · 우선순위(1~5, null = 미지정)
+alter table public.tasks add column if not exists importance int not null default 2;
+alter table public.tasks add column if not exists priority int;
+do $$ begin
+  alter table public.tasks add constraint tasks_importance_chk check (importance between 1 and 3);
+exception when duplicate_object then null; end $$;
+do $$ begin
+  alter table public.tasks add constraint tasks_priority_chk check (priority is null or priority between 1 and 9);
+exception when duplicate_object then null; end $$;
+
 create table if not exists public.workers (
   id             text primary key default public.new_id('W'),
   task_id        text not null references public.tasks(id) on delete cascade,

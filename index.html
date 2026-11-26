@@ -200,6 +200,14 @@
   .switch input{position:absolute;left:0;top:2px;margin:0}
   .g2 > *,.g-form > *{min-width:0}
   .tc-grid{display:grid;grid-template-columns:2fr 1fr;gap:10px}
+  .pq{white-space:nowrap}
+  .qsel{border:1px solid var(--line);border-radius:8px;padding:4px 6px;font-size:12.5px;background:#fff;cursor:pointer;font-family:inherit}
+  .qsel.imp{display:block;width:100%;margin-bottom:4px;font-weight:600}
+  .qsel.prio{display:block;width:100%}
+  .qsel.imp-3{background:#fef3f2;border-color:#fecdca;color:#b42318}
+  .qsel.imp-2{background:#fffaeb;border-color:#fedf89;color:#93370d}
+  .qsel.imp-1{background:#f9fafb;color:#667085}
+  #tbody tr.imp-row-3 td:first-child{box-shadow:inset 3px 0 0 #f04438}
   #rBody td.rg-key{vertical-align:top;background:#fbfcfe;border-right:1px solid var(--line2)}
   #rBody tr.rg-alt td.rg-key{background:#f6f8fc}
   #rBody tr.rg-first td{border-top:2px solid var(--line)}
@@ -264,6 +272,10 @@
     #tbody td:nth-child(3){grid-column:2;grid-row:1;padding:1px 0 8px;font-size:15px} #tbody td:nth-child(3)::before{display:none}
     #tbody td[colspan]{grid-column:1/-1!important;grid-row:auto!important}
     #tbody .chk{width:22px;height:22px}
+    #tbody td.pq{display:flex;gap:6px;padding-left:82px}
+    #tbody td.pq .qsel{display:inline-block;width:auto;flex:1;margin:0;min-height:34px}
+    #tbody tr.imp-row-3{border-left:4px solid #f04438}
+    #tbody tr.imp-row-3 td:first-child{box-shadow:none}
 
     /* 보고현황: 작업자별 카드 안의 업무 줄 */
     .person{border-radius:14px;box-shadow:var(--sh1);background:#fff}
@@ -370,14 +382,14 @@
     </select>
     <input type="date" id="ddDate" hidden title="이 날짜가 마감인 업무">
     <select id="sortSel">
-      <option value="due">마감일 빠른순</option><option value="report">보고 오래된순</option>
+      <option value="prio">중요도·우선순위순</option><option value="due">마감일 빠른순</option><option value="report">보고 오래된순</option>
       <option value="progress">진행률 낮은순</option><option value="created">최근 등록순</option>
     </select>
     <span class="sp"></span><span class="count" id="count"></span>
     <button class="btn primary" id="btnDashAdd">+ 업무 등록</button>
   </div>
   <div class="panel"><table class="wide">
-    <thead><tr><th style="width:42px">완료</th><th>D-day</th><th>업무</th><th>작업자 (진행률)</th><th>마감 / 예상</th>
+    <thead><tr><th style="width:42px">완료</th><th>D-day</th><th>업무</th><th style="width:118px">중요도 · 순위</th><th>작업자 (진행률)</th><th>마감 / 예상</th>
       <th>전체</th><th>최근 보고</th><th>상태</th><th>관리</th></tr></thead>
     <tbody id="tbody"></tbody></table></div>
   <div class="hint" style="margin-top:8px">작업자 칩: <span class="wk"><b>이름</b><span class="pct">60%</span></span> 진행 중 · <span class="wk done"><b>이름</b>✓</span> 완료 · <span class="wk nomail"><b>이름</b></span> 점선 = 이메일 없음(카톡으로 안내)</div>
@@ -603,6 +615,8 @@
       <div class="f full"><label>업무 내용</label><textarea name="desc"></textarea></div>
       <div class="f"><label>마감일 (D-day) <b>*</b></label><input name="due" type="date" required></div>
       <div class="f"><label>마감예상일 (작업자가 보고하면 가장 늦은 날짜로 자동 갱신)</label><input name="expected" type="date"></div>
+      <div class="f"><label>중요도</label><select name="importance"><option value="3">🔴 높음</option><option value="2" selected>🟡 보통</option><option value="1">⚪ 낮음</option></select></div>
+      <div class="f"><label>우선순위 (1순위가 가장 먼저)</label><select name="priority"><option value="">미지정</option><option value="1">1순위</option><option value="2">2순위</option><option value="3">3순위</option><option value="4">4순위</option><option value="5">5순위</option></select></div>
       <div class="wedit" id="taskWorkers"></div>
       <div class="f full"><label>메모 (관리자용)</label><textarea name="memo" style="min-height:44px"></textarea></div>
       <div class="box" id="recurBox">
@@ -874,6 +888,7 @@ function taskOptions(onlyOpen) {
     .map(t => `<option value="${esc(t.id)}">${esc(t.title)} · ${esc(t.workers.map(w => w.name).join(', '))} (${ddLabel(t.dday)})</option>`).join('');
 }
 function renderTasks() {
+  tasks.forEach(t => { if (t.importance == null) t.importance = 2; if (t.priority === undefined) t.priority = null; });
   $('#stats').innerHTML = FILTERS.map(F => `<div class="stat ${F.cls || ''} ${filter === F.k ? 'on' : ''}" data-f="${F.k}">
     <div class="k">${F.label}</div><div class="v">${tasks.filter(F.f).length}</div></div>`).join('');
   const q = $('#q').value.trim().toLowerCase(), owner = $('#ownerSel').value, sort = $('#sortSel').value;
@@ -886,18 +901,25 @@ function renderTasks() {
     if (sort === 'created') return (b.created || '').localeCompare(a.created || '');
     if (sort === 'report') return (a.lastReportAt || '0').localeCompare(b.lastReportAt || '0');
     const v = t => !isOpen(t) ? 1e6 : (t.dday ?? 1e5);
+    if (sort === 'prio') {                                    // 완료는 아래 · 중요도 높은 순 · 우선순위 빠른 순 · 마감 임박 순
+      const od = (isOpen(a) ? 0 : 1) - (isOpen(b) ? 0 : 1); if (od) return od;
+      if (b.importance !== a.importance) return b.importance - a.importance;
+      const pa = a.priority ?? 99, pb = b.priority ?? 99; if (pa !== pb) return pa - pb;
+    }
     return v(a) - v(b);
   });
   $('#count').textContent = list.length + '건';
-  $('#tbody').innerHTML = !list.length ? `<tr><td colspan="9" class="empty">${tasks.length ? '조건에 맞는 업무가 없습니다.' : '등록된 업무가 없습니다. [+ 업무 등록]으로 시작하세요.'}</td></tr>` :
+  $('#tbody').innerHTML = !list.length ? `<tr><td colspan="10" class="empty">${tasks.length ? '조건에 맞는 업무가 없습니다.' : '등록된 업무가 없습니다. [+ 업무 등록]으로 시작하세요.'}</td></tr>` :
     list.map(t => {
       const done = !isOpen(t), ago = daysAgo(t.lastReportAt);
       const hasMail = t.workers.some(w => w.email && w.status !== '완료');
-      return `<tr class="${done ? 'is-done' : ''}" data-id="${esc(t.id)}">
+      return `<tr class="${done ? 'is-done' : ''} ${done ? '' : 'imp-row-' + t.importance}" data-id="${esc(t.id)}">
       <td><input type="checkbox" class="chk" data-act="done" ${done ? 'checked' : ''} title="전원 완료 처리"></td>
       <td><span class="dd ${ddClass(t)}">${done ? '완료' : ddLabel(t.dday)}</span></td>
       <td><span class="ttl" data-act="detail">${esc(t.title)}</span> ${t.recurId ? '<span class="chip rep">반복</span>' : ''}${t.id === 'TEST' ? '<span class="chip" style="background:#fef3c7;color:#92400e">🧪 테스트 · 자동알림 제외</span>' : ''}
         ${t.desc ? `<div class="sub clip">${esc(t.desc)}</div>` : ''}</td>
+      <td class="pq"><select class="qsel imp imp-${t.importance}" data-q="importance" title="중요도">${[3, 2, 1].map(n => `<option value="${n}" ${t.importance === n ? 'selected' : ''}>${IMP[n]}</option>`).join('')}</select>
+        <select class="qsel prio" data-q="priority" title="우선순위"><option value="">순위 -</option>${[1, 2, 3, 4, 5].map(n => `<option value="${n}" ${t.priority === n ? 'selected' : ''}>${n}순위</option>`).join('')}</select></td>
       <td style="max-width:300px">${t.workers.map(wkChip).join('')}${t.workers.length > 1 ? `<div class="sub">완료 ${t.workers.filter(w => w.status === '완료').length}/${t.workers.length}명</div>` : ''}</td>
       <td>${esc(t.due)}<div class="sub">예상 ${esc(t.expected || '-')}${t.risk && !done ? '<span class="warn">▲지연위험</span>' : ''}</div></td>
       <td style="white-space:nowrap"><span class="bar"><i class="${done ? 'ok' : ''}" style="width:${t.progress}%"></i></span>${t.progress}%</td>
@@ -906,6 +928,17 @@ function renderTasks() {
       <td class="act"><button class="btn sm kakao" data-act="share">카톡</button><button class="btn sm" data-act="notify" ${done || !hasMail ? 'disabled' : ''} title="${hasMail ? '미완료 작업자에게 지금 메일' : '메일 받을 작업자 없음'}">메일</button><button class="btn sm" data-act="edit">수정</button><button class="btn sm" data-act="rsv" ${done || !hasMail ? 'disabled' : ''}>예약</button>${t.id === 'TEST' ? '<button class="btn sm danger" data-act="reset">초기화</button>' : '<button class="btn sm danger" data-act="del">삭제</button>'}</td></tr>`;
     }).join('');
 }
+const IMP = { 3: '🔴 높음', 2: '🟡 보통', 1: '⚪ 낮음' };
+$('#tbody').addEventListener('change', async e => {
+  const sel = e.target.closest('.qsel'); if (!sel) return;
+  const id = sel.closest('tr').dataset.id, t = tasks.find(x => x.id === id); if (!t) return;
+  const prev = { importance: t.importance, priority: t.priority };
+  if (sel.dataset.q === 'importance') t.importance = Number(sel.value); else t.priority = sel.value === '' ? null : Number(sel.value);
+  try { await call('setPriority', id, t.importance, t.priority); toast(`'${t.title}' ${sel.dataset.q === 'importance' ? '중요도 ' + IMP[t.importance] : '우선순위 ' + (t.priority ? t.priority + '순위' : '미지정')}`); }
+  catch (err) { Object.assign(t, prev); }
+  renderTasks();
+});
+$('#tbody').addEventListener('click', e => { if (e.target.closest('.qsel')) e.stopPropagation(); }, true);
 $('#stats').onclick = e => { const s = e.target.closest('.stat'); if (s) { filter = s.dataset.f; renderTasks(); } };
 ['#q', '#ownerSel', '#sortSel', '#ddDate'].forEach(s => $(s).addEventListener('input', renderTasks));
 /* D-day 거르기 */
@@ -957,6 +990,7 @@ function openTask(t) {
   $('#taskDlgTitle').textContent = t ? '업무 수정' : '업무 등록';
   const v = t || {};
   ['id','recurId','title','desc','due','expected','memo'].forEach(k => taskForm.elements[k].value = v[k] ?? '');
+  taskForm.elements.importance.value = String(v.importance ?? 2); taskForm.elements.priority.value = v.priority == null ? '' : String(v.priority);
   renderWorkerEditor($('#taskWorkers'), t ? t.workers : [], true);
   $('#recurOpts').hidden = true;
   $('#recurChk').hidden = !!(t && t.recurId);
@@ -980,6 +1014,7 @@ taskForm.onsubmit = async e => {
   const f = taskForm.elements;
   const d = { id: f.id.value, recurId: f.recurId.value, title: f.title.value.trim(), desc: f.desc.value, due: f.due.value,
     expected: f.expected.value, memo: f.memo.value, workers: readWorkers($('#taskWorkers')),
+    importance: f.importance.value, priority: f.priority.value,
     makeRecurring: f.makeRecurring.checked ? 'Y' : 'N', cycle: f.cycle.value, dueRule: f.dueRule.value,
     notifyNow: f.notifyNow.checked ? 'Y' : 'N' };
   if (!d.workers.length) return toast('작업자를 한 명 이상 입력하세요.', true);
@@ -1820,6 +1855,7 @@ const Demo = (() => {
     runDaily: () => ({ targets:5, sent:3, manual:2 }),
     runReservations: () => ({ processed:0 }),
     getSettings: () => ({ ...cfg }),
+    setPriority: (id, i, p) => { const t = T.find(x => x.id === id); if (t) { t.importance = Number(i); t.priority = p === '' || p == null ? null : Number(p); } return true; },
     getStatus: () => ({ repo:'', hasToken:false, pgNet:true, pgCron:true, cronJob:true }),
     saveGithub: () => ({}),
     saveSettings: s => { cfg = { ...cfg, ...s }; return cfg; },

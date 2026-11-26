@@ -50,6 +50,7 @@
     return {
       id: t.id, title: t.title, desc: t.description, due: t.due, expected: t.expected || '', progress: t.progress, status: t.status,
       doneDate: t.done_at || '', memo: t.memo || '', recurId: t.recur_id || '', isTest: t.is_test,
+      importance: t.importance == null ? 2 : t.importance, priority: t.priority == null ? null : t.priority, hasPrio: 'importance' in t,
       created: DD.fmtTs(t.created_at).slice(0, 10), createdAt: DD.fmtTs(t.created_at), updated: DD.fmtTs(t.updated_at),
       lastReportAt: DD.fmtTs(t.last_report_at), lastReport: t.last_report || '',
       dday: dday, risk: !!(t.expected && t.due && t.expected > t.due),
@@ -154,7 +155,19 @@
   const SETTING_KEYS = ['remindDays', 'overdueEvery', 'sendTime', 'senderName', 'adminEmail', 'adminDigest', 'notifyOnComplete',
     'notifyOnReport', 'appUrl', 'mailSubject', 'mailBody', 'chatText', 'chatGroupText', 'kakaoJsKey'];
 
+  /** 중요도·우선순위 저장 (칸이 아직 없으면 업데이트 SQL 안내) */
+  async function setPriority(id, importance, priority) {
+    const row = { importance: Math.max(1, Math.min(3, Number(importance) || 2)), priority: priority === '' || priority == null ? null : Number(priority) };
+    const r = await sb.from('tasks').update(row).eq('id', id);
+    if (r.error) {
+      if (/importance|priority|column/i.test(r.error.message)) throw new Error('중요도·우선순위 칸이 아직 없습니다. Supabase SQL Editor 에서 supabase/upgrade-priority.sql 을 한 번 실행하세요. (업무 내용은 저장됨)');
+      throw new Error(errMsg(r.error));
+    }
+    return true;
+  }
+
   const API = {
+    setPriority,
     getAppInfo: async () => ({ today: DD.todayKst(), url: baseOf(await cfg()), sendTime: (await cfg()).sendTime }),
     getTasks: allTasks,
 
@@ -172,6 +185,7 @@
           progress: w.progress === undefined || w.progress === '' ? undefined : w.progress })) };
       if (recurId || d.recurId !== undefined) p.recurId = recurId;
       const id = await rpc('admin_save_task', { p });
+      if (d.importance !== undefined) await setPriority(id, d.importance, d.priority);
       if (created) {
         const tp = await q(sb.from('templates').select('publish_count').eq('id', recurId).single());
         await q(sb.from('templates').update({ last_published: new Date().toISOString(), publish_count: (tp.publish_count || 0) + 1 }).eq('id', recurId));
