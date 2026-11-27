@@ -158,6 +158,29 @@
     };
   }
 
+  function portalUrl(base, token) { return base && token ? cleanBase(base) + 'my.html?p=' + token : ''; }
+  /** 담당자 페이지 안내 메일.  p = {name, token, open, tasks:[{title,due,dday,progress}]} */
+  function portalMail(p, base) {
+    const url = portalUrl(base, p.token), list = p.tasks || [];
+    const rows = list.slice(0, 15).map(t => [ddLabel(t.dday) + ' · ' + t.title, '마감 ' + t.due + ' · 내 진행률 ' + t.progress + '%']);
+    return {
+      subject: '[업무알림] ' + p.name + '님의 담당 업무 페이지 안내',
+      html: mailHtml(p.name + '님, 안녕하세요.\n\n담당하신 업무를 한곳에서 확인하고 진행 상황을 보고할 수 있는 개인 페이지를 안내드립니다.\n' +
+        '아래 [내 업무 보기] 버튼을 눌러 접속하세요. (휴대폰 홈 화면이나 즐겨찾기에 추가해 두면 편리합니다)\n\n' +
+        '현재 진행 중인 업무: ' + (p.open || 0) + '건' + (list.length > 15 ? ' (아래는 앞 15건)' : ''), rows.length ? rows : null, url, '내 업무 보기')
+    };
+  }
+  /** 카카오톡: 담당자 페이지 카드 */
+  function kakaoPortal(p, base) {
+    const url = portalUrl(base, p.token), ln = { mobileWebUrl: url, webUrl: url };
+    return {
+      objectType: 'feed',
+      content: { title: p.name + '님의 담당 업무', description: '진행 중 ' + (p.open || 0) + '건' + (p.soon ? ' · 마감 임박 ' + p.soon + '건' : '') + (p.over ? ' · 마감 경과 ' + p.over + '건' : '') + ' — 눌러서 확인·보고',
+        imageUrl: cleanBase(base) + 'kakao-card.png', imageWidth: 800, imageHeight: 400, link: ln },
+      buttons: [{ title: '내 업무 보기', link: ln }]
+    };
+  }
+
   /** 메일 대기열 1건 → {subject, html, toName, title, kind, mode} (보낼 것이 없으면 skip:true) */
   function renderQueued(q, cfg, base, today) {
     const p = q.payload || {};
@@ -170,6 +193,10 @@
       case 'complete_admin': {
         const m = completeAdminMail(t, p, base, today);
         return Object.assign(m, { toName: '관리자', title: t.title, kind: '완료보고', mode: '자동' });
+      }
+      case 'portal': {
+        const m = portalMail(p, base);
+        return Object.assign(m, { toName: p.name || '', title: '담당자 페이지 안내', kind: '담당자 페이지', mode: '수동' });
       }
       case 'digest': {
         const m = digestMail(q.digest || {}, p, base, today);
@@ -306,6 +333,6 @@
 
   root.DD = {
     esc, ddLabel, kindLabel, KIND_REQUEST, todayKst, nowKst, diffDays, addDays, fmtTs, kstInputToIso, isoToKstInput,
-    cleanBase, reportUrl, fastMailState, kakaoTemplates, shortTs, reportLog, vars, fill, mailHtml, buildMsg, shareText, reportAdminMail, completeAdminMail, digestMail, renderQueued
+    cleanBase, reportUrl, portalUrl, portalMail, kakaoPortal, fastMailState, kakaoTemplates, shortTs, reportLog, vars, fill, mailHtml, buildMsg, shareText, reportAdminMail, completeAdminMail, digestMail, renderQueued
   };
 })(typeof window !== 'undefined' ? window : globalThis);

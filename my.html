@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="theme-color" content="#ffffff">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<title>내 업무</title>
+<style>
+  :root{--bg:#f5f6f8;--card:#fff;--line:#e4e7ec;--line2:#eef0f3;--text:#101828;--sub:#667085;--primary:#1f4fd8;--pw:#eaf0ff;
+        --over:#d92d20;--soon:#e8590c;--ok:#15803d;--okw:#e7f6ec}
+  *{box-sizing:border-box}
+  [hidden]{display:none!important}
+  body{margin:0;background:var(--bg);color:var(--text);font:15px/1.55 "Pretendard Variable",Pretendard,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+       letter-spacing:-.01em;-webkit-font-smoothing:antialiased;-webkit-text-size-adjust:100%}
+  .wrap{max-width:720px;margin:0 auto;padding:12px 16px calc(40px + env(safe-area-inset-bottom))}
+  .brandbar{display:flex;align-items:center;gap:10px;padding:8px 2px 12px}
+  .brandbar img{width:32px;height:32px}
+  .brandbar b{font-size:15px;letter-spacing:-.02em}
+  .brandbar small{display:block;font-size:11.5px;color:var(--sub);font-weight:500}
+  .brandbar .sp{flex:1}
+  .btn{border:1px solid var(--line);background:#fff;border-radius:10px;padding:7px 12px;font:inherit;font-size:13.5px;cursor:pointer;color:var(--text)}
+  .hero{background:linear-gradient(135deg,#1f4fd8,#3b6cf0);color:#fff;border-radius:18px;padding:18px 18px 16px;box-shadow:0 8px 24px rgba(31,79,216,.22)}
+  .hero h1{margin:0;font-size:20px;letter-spacing:-.02em}
+  .hero .d{opacity:.85;font-size:13px;margin-top:2px}
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:14px}
+  .stat{background:rgba(255,255,255,.14);border-radius:12px;padding:8px 6px;text-align:center;cursor:pointer;border:1px solid transparent}
+  .stat.on{background:#fff;color:var(--text)}
+  .stat .k{font-size:11.5px;opacity:.9;white-space:nowrap}
+  .stat .v{font-size:21px;font-weight:800;line-height:1.2}
+  .stat.on .k{color:var(--sub);opacity:1}
+  .tools{display:flex;align-items:center;gap:6px;margin:16px 2px 10px;flex-wrap:wrap}
+  .tools .ttl{font-weight:700;font-size:15px;margin-right:auto}
+  .seg{display:inline-flex;background:#e9ecf2;border-radius:10px;padding:3px}
+  .seg button{border:0;background:transparent;border-radius:8px;padding:5px 10px;font:inherit;font-size:12.5px;color:var(--sub);cursor:pointer}
+  .seg button.on{background:#fff;color:var(--text);font-weight:700;box-shadow:0 1px 2px rgba(16,24,40,.08)}
+  .task{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:12px;box-shadow:0 1px 2px rgba(16,24,40,.05);position:relative}
+  .task.imp3{border-left:4px solid #f04438}
+  .task.done{opacity:.8}
+  .row1{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+  .dd{display:inline-block;padding:2px 10px;border-radius:99px;font-weight:800;font-size:12.5px;background:var(--okw);color:var(--ok)}
+  .dd.soon{background:#fff0e6;color:var(--soon)} .dd.over{background:#fde8e6;color:var(--over)} .dd.fin{background:#eef0f4;color:#7a8499}
+  .chip{display:inline-block;padding:2px 8px;border-radius:99px;font-size:11.5px;font-weight:700;background:#f2f4f7;color:#475467}
+  .chip.i3{background:#fef3f2;color:#b42318}.chip.i2{background:#fffaeb;color:#93370d}.chip.i1{background:#f2f4f7;color:#667085}
+  .chip.pr{background:#eef4ff;color:#3538cd}
+  .chip.test{background:#fef3c7;color:#92400e}
+  .task h3{margin:8px 0 2px;font-size:17px;line-height:1.35;letter-spacing:-.02em}
+  .desc{color:var(--sub);font-size:13.5px;white-space:pre-wrap;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+  .grid div{background:#f8f9fc;border-radius:10px;padding:8px 11px}
+  .grid b{display:block;font-size:11.5px;color:var(--sub);font-weight:600}
+  .grid span{font-weight:700;font-size:14px}
+  .prog{display:flex;align-items:center;gap:10px;margin-top:12px}
+  .bar{flex:1;height:8px;background:#eef1f6;border-radius:99px;overflow:hidden}
+  .bar i{display:block;height:100%;background:var(--primary)} .bar i.ok{background:var(--ok)}
+  .prog .p{font-weight:800;min-width:42px;text-align:right}
+  .st{padding:2px 9px;border-radius:99px;font-size:12px;font-weight:700;background:#eef0f3;color:#344054}
+  .st.s-진행중{background:var(--pw);color:var(--primary)} .st.s-완료{background:var(--okw);color:var(--ok)} .st.s-보류{background:#fff4e5;color:#b54708}
+  .team{font-size:12.5px;color:var(--sub);margin-top:8px}
+  .last{margin-top:10px;padding:9px 11px;border-radius:10px;background:#fbfcfe;border:1px dashed var(--line);font-size:13px}
+  .last .w{color:var(--sub);font-size:12px}
+  .last .c{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;white-space:pre-wrap}
+  .go{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:12px;width:100%;padding:12px;border-radius:12px;border:0;
+      background:var(--primary);color:#fff;font:inherit;font-weight:700;font-size:15px;text-decoration:none;box-shadow:0 4px 12px rgba(31,79,216,.22)}
+  .go.sec{background:#fff;color:var(--primary);border:1px solid #c7d4fb;box-shadow:none}
+  .empty{text-align:center;color:var(--sub);padding:36px 12px;background:#fff;border:1px dashed var(--line);border-radius:16px}
+  .msg{text-align:center;padding:40px 18px}
+  .msg .big{font-size:44px}
+  .tip{font-size:12.5px;color:var(--sub);text-align:center;margin-top:18px}
+  .demo{background:#fff7e0;border:1px solid #fde2a7;color:#8a5a00;border-radius:12px;padding:9px 12px;font-size:13px;margin-bottom:10px}
+  @media (min-width:720px){ .list{display:grid;grid-template-columns:1fr 1fr;gap:12px} .task{margin-bottom:0} }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4"></script>
+<script src="config.js"></script>
+<script src="shared.js"></script>
+</head>
+<body>
+<div class="wrap">
+  <div class="brandbar"><img src="favicon.png" alt="SW"><div><b>내 업무</b><small id="sender">업무알림</small></div>
+    <span class="sp"></span><button class="btn" id="reload" hidden>↻ 새로고침</button></div>
+  <div class="demo" id="demo" hidden>미리보기 — 샘플 데이터입니다.</div>
+  <div id="app"><div class="msg"><div class="big">⏳</div>불러오는 중…</div></div>
+</div>
+<script>
+'use strict';
+const $ = s => document.querySelector(s);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const PTOKEN = (new URLSearchParams(location.search).get('p') || '').replace(/[^a-f0-9]/gi, '').slice(0, 64).toLowerCase();
+const CFG = window.APP_CONFIG || {};
+const LIVE = !!(CFG.SUPABASE_URL && CFG.SUPABASE_ANON_KEY && window.supabase);
+const SB = LIVE ? supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY, { auth: { persistSession: false, autoRefreshToken: false } }) : null;
+const IMP = { 3: '🔴 중요', 2: '🟡 보통', 1: '⚪ 낮음' };
+let DATA = null, view = 'open', sort = 'prio';
+try { sort = localStorage.getItem('my-sort') || 'prio'; } catch (e) {}
+
+async function load() {
+  if (!LIVE) return demo();
+  const r = await SB.rpc('portal_load', { p_token: PTOKEN });
+  if (r.error) throw new Error(/Failed to fetch/i.test(r.error.message) ? '서버에 연결할 수 없습니다. 잠시 후 다시 시도하세요.' : r.error.message);
+  return r.data;
+}
+const ddCls = t => t.done ? 'fin' : t.dday < 0 ? 'over' : t.dday <= 3 ? 'soon' : '';
+const ddTxt = t => t.done ? '완료' : DD.ddLabel(t.dday);
+const short = d => d ? String(d).slice(2).replace(/-/g, '.') : '-';
+
+function render() {
+  const d = DATA, ts = d.tasks || [];
+  $('#sender').textContent = d.senderName || '업무알림';
+  document.title = d.name + '님의 업무';
+  const open = ts.filter(t => !t.done), done = ts.filter(t => t.done);
+  const soon = open.filter(t => t.dday >= 0 && t.dday <= 3), over = open.filter(t => t.dday < 0);
+  const F = { open: open, soon: soon, over: over, done: done };
+  let list = F[view] || open;
+  list = list.slice().sort((a, b) => sort === 'due'
+    ? (a.dday - b.dday)
+    : (b.importance - a.importance) || ((a.priority ?? 99) - (b.priority ?? 99)) || (a.dday - b.dday));
+  const stat = (k, label, n) => `<div class="stat ${view === k ? 'on' : ''}" data-v="${k}"><div class="k">${label}</div><div class="v">${n}</div></div>`;
+  const today = new Date();
+  $('#app').innerHTML = `
+    <div class="hero"><h1>👋 ${esc(d.name)}님의 업무</h1>
+      <div class="d">${today.getFullYear()}년 ${today.getMonth() + 1}월 ${today.getDate()}일 (${'일월화수목금토'[today.getDay()]}) · 담당 업무를 확인하고 진행 상황을 보고하세요</div>
+      <div class="stats">${stat('open', '진행 중', open.length)}${stat('soon', '마감 임박', soon.length)}${stat('over', '마감 경과', over.length)}${stat('done', '완료', done.length)}</div>
+    </div>
+    <div class="tools"><span class="ttl">${{ open: '진행 중인 업무', soon: '마감 임박 (D-3 이내)', over: '마감 경과', done: '완료한 업무 (최근 60일)' }[view]} <span style="color:var(--sub);font-weight:500">${list.length}건</span></span>
+      <span class="seg"><button data-s="prio" class="${sort === 'prio' ? 'on' : ''}">중요도순</button><button data-s="due" class="${sort === 'due' ? 'on' : ''}">마감순</button></span></div>
+    <div class="list">${list.length ? list.map(card).join('') : `<div class="empty">${view === 'open' ? '🎉 진행 중인 업무가 없습니다.' : '해당하는 업무가 없습니다.'}</div>`}</div>
+    <div class="tip">💡 이 페이지를 휴대폰 <b>홈 화면에 추가</b>하거나 즐겨찾기 해 두면 언제든 내 업무를 볼 수 있습니다.<br>링크는 본인 전용입니다. 다른 사람과 공유하지 마세요.</div>`;
+  $('#reload').hidden = false;
+}
+function card(t) {
+  const link = 'report.html?r=' + t.token + '&p=' + PTOKEN;
+  return `<div class="task ${t.done ? 'done' : ''} ${!t.done && t.importance === 3 ? 'imp3' : ''}">
+    <div class="row1"><span class="dd ${ddCls(t)}">${ddTxt(t)}</span><span class="chip i${t.importance}">${IMP[t.importance] || ''}</span>
+      ${t.priority ? `<span class="chip pr">${t.priority}순위</span>` : ''}${t.teamSize > 1 ? `<span class="chip">👥 공동 ${t.teamSize}명</span>` : ''}${t.isTest ? '<span class="chip test">🧪 테스트</span>' : ''}</div>
+    <h3>${esc(t.title)}</h3>${t.desc ? `<div class="desc">${esc(t.desc)}</div>` : ''}
+    <div class="grid"><div><b>마감일</b><span>${short(t.due)}</span></div><div><b>내 마감예상일</b><span>${short(t.expected)}</span></div></div>
+    <div class="prog"><span class="bar"><i class="${t.status === '완료' ? 'ok' : ''}" style="width:${t.progress}%"></i></span><span class="p">${t.progress}%</span><span class="st s-${esc(t.status)}">${esc(t.status)}</span></div>
+    ${t.others ? `<div class="team">함께하는 작업자: ${esc(t.others)} · 전체 ${t.teamProgress}%</div>` : ''}
+    ${t.lastReportAt ? `<div class="last"><div class="w">최근 내 보고 · ${esc(t.lastReportAt.slice(2).replace(/-/g, '.'))}</div><div class="c">${esc(t.lastReport)}</div></div>` : ''}
+    <a class="go ${t.done ? 'sec' : ''}" href="${link}">${t.done ? '보고 기록 보기' : '📝 진행 보고하기'} →</a>
+  </div>`;
+}
+document.addEventListener('click', e => {
+  const s = e.target.closest('.stat'); if (s) { view = s.dataset.v; render(); return; }
+  const b = e.target.closest('[data-s]'); if (b) { sort = b.dataset.s; try { localStorage.setItem('my-sort', sort); } catch (_) {} render(); }
+});
+$('#reload').onclick = () => start();
+
+async function start() {
+  try {
+    if (LIVE && !PTOKEN) throw new Error('링크가 올바르지 않습니다. 관리자에게 받은 "내 업무" 링크로 들어와 주세요.');
+    DATA = await load(); render();
+  } catch (e) {
+    $('#app').innerHTML = `<div class="msg"><div class="big">🔒</div><b>${esc(e.message || e)}</b></div>`;
+  }
+}
+
+function demo() {
+  $('#demo').hidden = false;
+  return { name: '김영희', senderName: '업무알림', tasks: [
+    { title: '부가세 신고 자료 취합', desc: '세무사 전달용 매입·매출 자료', due: '2026-12-20', dday: 23, importance: 3, priority: 1, teamProgress: 40, teamSize: 1, token: 'x', progress: 40, status: '진행중', expected: '2026-12-18', lastReportAt: '2026-11-26 15:20', lastReport: '매입 자료 1차 정리 완료', done: false },
+    { title: '월말 급여 마감', desc: '', due: '2026-11-29', dday: 2, importance: 3, priority: 2, teamProgress: 20, teamSize: 2, others: '박철수 0%', token: 'x', progress: 40, status: '진행중', expected: '', lastReportAt: '', lastReport: '', done: false },
+    { title: '비품 재고 정리', desc: '', due: '2026-11-25', dday: -2, importance: 1, priority: null, teamProgress: 0, teamSize: 1, token: 'x', progress: 0, status: '대기', expected: '', done: false },
+    { title: '거래처 계약 갱신', desc: '', due: '2026-11-20', dday: -7, importance: 2, priority: null, teamProgress: 100, teamSize: 1, token: 'x', progress: 100, status: '완료', expected: '', lastReportAt: '2026-11-19 10:02', lastReport: '갱신 완료', done: true }
+  ] };
+}
+start();
+</script>
+</body>
+</html>

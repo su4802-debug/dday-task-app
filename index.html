@@ -359,6 +359,7 @@
   <button data-tab="dash" class="on">업무 현황</button>
   <button data-tab="recur">반복업무</button>
   <button data-tab="reports">진행 보고</button>
+  <button data-tab="people">👤 담당자 페이지</button>
   <button data-tab="rsv">예약 메일</button>
   <button data-tab="test">테스트</button>
   <button data-tab="settings">알림 설정</button>
@@ -593,6 +594,22 @@
 </section>
 
 <!-- ============ 발송 로그 ============ -->
+<section id="tab-people" hidden>
+  <div class="card" style="margin-bottom:12px">
+    <h3 style="margin:0 0 6px">👤 담당자 개인 페이지 ("내 업무")</h3>
+    <div class="hint">담당자마다 <b>본인 전용 링크</b>가 있습니다. 링크로 들어가면 <b>자기가 맡은 업무 전체</b>를 중요도·우선순위·D-day 순으로 보고, 업무마다 바로 <b>진행 보고</b>를 할 수 있습니다 (로그인 없음).<br>
+      같은 사람은 <b>이메일</b>로 묶습니다 (이메일이 없으면 이름+전화번호). 업무를 등록하면 명단이 자동으로 갱신됩니다. 링크가 다른 사람에게 새어 나갔다면 <b>[재발급]</b>하세요 — 이전 링크는 즉시 막힙니다.</div>
+  </div>
+  <div class="toolbar">
+    <input type="search" id="pq" placeholder="이름·이메일 검색">
+    <button class="btn" id="btnPeopleReload">새로고침</button>
+    <span class="sp"></span><span class="count" id="pCount"></span>
+  </div>
+  <div class="panel"><table class="wide">
+    <thead><tr><th>담당자</th><th>연락처</th><th>진행 중</th><th>마감 임박 · 경과</th><th>최근 접속</th><th>개인 페이지 보내기</th></tr></thead>
+    <tbody id="pBody"></tbody></table></div>
+</section>
+
 <section id="tab-logs" hidden>
   <div class="toolbar">
     <select id="logFilter"><option value="">전체 결과</option><option value="성공">성공</option><option value="실패">실패</option></select>
@@ -786,7 +803,7 @@ $('#loginForm').onsubmit = async e => {
 $('#btnLogout').onclick = async () => { if (HAS_GAS) await AdminAPI.Auth.logout(); showLogin(''); };
 
 /* ================= 탭 ================= */
-const loaders = { dash: loadTasks, recur: loadTpls, reports: loadReports, rsv: loadRsv, test: loadTest, settings: loadSettings, logs: loadLogs };
+const loaders = { dash: loadTasks, recur: loadTpls, reports: loadReports, people: loadPeople, rsv: loadRsv, test: loadTest, settings: loadSettings, logs: loadLogs };
 function go(tab) {
   $$('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === tab));
   Object.keys(loaders).forEach(k => $('#tab-' + k).hidden = k !== tab);
@@ -1688,6 +1705,45 @@ $('#pwForm').onsubmit = async e => {
 
 /* ================= 발송 로그 ================= */
 let logs = [];
+/* ================= 담당자 페이지 ================= */
+let people = [];
+async function loadPeople() { people = await call('getPeople'); renderPeople(); }
+function portalLink(p) { return AdminAPI.READY ? DD.portalUrl(AdminAPI.base(), p.token) : 'my.html'; }
+function renderPeople() {
+  const q = $('#pq').value.trim().toLowerCase();
+  const list = people.filter(p => !q || [p.name, p.email, p.phone].join(' ').toLowerCase().includes(q));
+  $('#pCount').textContent = list.length + '명';
+  $('#pBody').innerHTML = list.length ? list.map(p => `<tr data-id="${esc(p.id)}">
+    <td><b>${esc(p.name)}</b>${p.hasTest && !p.total ? ' <span class="chip" style="background:#fef3c7;color:#92400e">🧪 테스트</span>' : ''}</td>
+    <td>${esc(p.email || '')}${p.email ? '' : '<span class="sub">이메일 없음</span>'}${p.phone ? `<div class="sub">${esc(p.phone)}</div>` : ''}</td>
+    <td><b>${p.open}</b>건<div class="sub">전체 ${p.total}건</div></td>
+    <td>${p.soon ? `<span class="chip" style="background:#fff0e6;color:#e8590c">임박 ${p.soon}</span> ` : ''}${p.over ? `<span class="chip" style="background:#fde8e6;color:#d92d20">경과 ${p.over}</span>` : ''}${!p.soon && !p.over ? '<span class="sub">-</span>' : ''}</td>
+    <td>${p.lastSeen ? esc(p.lastSeen.slice(5)) : '<span class="sub">아직 없음</span>'}</td>
+    <td class="act"><button class="btn sm kakao" data-pa="kakao">카톡</button><button class="btn sm" data-pa="mail" ${p.email ? '' : 'disabled title="이메일 없음"'}>메일</button><button class="btn sm" data-pa="copy">링크 복사</button><button class="btn sm" data-pa="open">열어보기</button><button class="btn sm danger" data-pa="reissue">재발급</button></td></tr>`).join('')
+    : '<tr><td colspan="6" class="empty">담당자가 없습니다. 업무를 등록하면 작업자가 여기에 나타납니다.</td></tr>';
+}
+$('#pq').addEventListener('input', renderPeople);
+$('#btnPeopleReload').onclick = loadPeople;
+$('#pBody').addEventListener('click', async e => {
+  const b = e.target.closest('[data-pa]'); if (!b) return;
+  const p = people.find(x => x.id === b.closest('tr').dataset.id); if (!p) return;
+  const act = b.dataset.pa, link = portalLink(p);
+  if (act === 'copy') { await copyText(link, `${p.name}님 개인 페이지 링크를 복사했습니다.`); }
+  else if (act === 'open') window.open(link, '_blank');
+  else if (act === 'mail') {
+    if (!confirm(`${p.name}님(${p.email})에게 개인 페이지 안내 메일을 보낼까요?`)) return;
+    const r = await call('sendPortalMail', p.id); toast(`${r.name}님에게 안내 메일 발송을 요청했습니다 (진행 중 ${r.open}건 포함).`);
+  } else if (act === 'reissue') {
+    if (!confirm(`${p.name}님의 링크를 새로 발급할까요?\n이전에 보낸 링크는 더 이상 열리지 않습니다.`)) return;
+    p.token = await call('reissuePortal', p.id); renderPeople(); toast('새 링크를 발급했습니다. 다시 보내 주세요.');
+  } else if (act === 'kakao') {
+    const ok = HAS_GAS && await kakaoLoad();
+    if (!ok) return copyText(`[${p.name}님 담당 업무]\n진행 중 ${p.open}건\n아래 링크에서 확인하고 보고하세요 👇\n${link}`, '카카오 키가 없어 안내문을 복사했습니다. 카톡에 붙여 넣으세요.');
+    try { Kakao.Share.sendDefault(DD.kakaoPortal(p, AdminAPI.base())); }
+    catch (err) { toast('카카오톡 보내기 실패: ' + (err.message || err), true); }
+  }
+});
+
 async function loadLogs() { logs = await call('getLogs', 300); renderLogs(); }
 function renderLogs() {
   const f = $('#logFilter').value, list = logs.filter(l => !f || l.result === f);
@@ -1856,6 +1912,9 @@ const Demo = (() => {
     runReservations: () => ({ processed:0 }),
     getSettings: () => ({ ...cfg }),
     setPriority: (id, i, p) => { const t = T.find(x => x.id === id); if (t) { t.importance = Number(i); t.priority = p === '' || p == null ? null : Number(p); } return true; },
+    getPeople: () => [{ id:'U1', name:'홍길동', email:'hong@company.com', phone:'010-1234-5678', token:'demo', open:2, soon:1, over:0, total:3, lastSeen:'2026-11-26 09:12' },
+      { id:'U2', name:'김철수', email:'', phone:'010-9876-5432', token:'demo2', open:1, soon:0, over:1, total:1, lastSeen:'' }],
+    sendPortalMail: id => ({ name:'홍길동', open:2 }), reissuePortal: id => 'demo3',
     getStatus: () => ({ repo:'', hasToken:false, pgNet:true, pgCron:true, cronJob:true }),
     saveGithub: () => ({}),
     saveSettings: s => { cfg = { ...cfg, ...s }; return cfg; },

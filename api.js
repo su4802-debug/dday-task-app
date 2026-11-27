@@ -168,6 +168,9 @@
 
   const API = {
     setPriority,
+    getPeople: async () => { await cfg(); return rpc('admin_people'); },
+    sendPortalMail: id => rpc('admin_people_mail', { p_id: id }),
+    reissuePortal: id => rpc('admin_people_reissue', { p_id: id }),
     getAppInfo: async () => ({ today: DD.todayKst(), url: baseOf(await cfg()), sendTime: (await cfg()).sendTime }),
     getTasks: allTasks,
 
@@ -401,5 +404,5 @@
     catch (e) { throw new Error(errMsg(e)); }
   }
 
-  window.AdminAPI = { READY, call, Auth, sb };
+  window.AdminAPI = { READY, call, Auth, sb, base: () => baseOf(CFG || {}) };
 })();

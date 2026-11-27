@@ -75,6 +75,7 @@
   .brandbar{display:flex;align-items:center;gap:10px;padding:14px 2px 4px}
   .brandbar img{width:32px;height:32px}
   .brandbar b{font-size:15px;letter-spacing:-.02em}
+  .tomy{border:1px solid #c7d4fb;background:#fff;color:#1f4fd8;border-radius:10px;padding:6px 11px;font-size:13px;font-weight:700;text-decoration:none;white-space:nowrap}
   .brandbar small{display:block;font-size:11.5px;color:var(--sub);font-weight:500}
   .submit{box-shadow:0 4px 12px rgba(31,79,216,.25)}
 </style>
@@ -85,7 +86,7 @@
 <body>
 <div class="demo" id="demo" hidden>미리보기 모드 — 샘플 업무로 표시됩니다 (저장 안 됨)</div>
 <div class="wrap">
-  <div class="brandbar"><img src="favicon.png" alt="SW"><div><b>업무 진행 보고</b><small><span id="sender">업무알림</span></small></div></div>
+  <div class="brandbar"><img src="favicon.png" alt="SW"><div><b>업무 진행 보고</b><small><span id="sender">업무알림</span></small></div><span style="flex:1"></span><a id="toMy" class="tomy" hidden>📋 내 업무 전체</a></div>
   <div id="app"><div class="card msg">불러오는 중…</div></div>
 </div>
 <div class="toast" id="toast"></div>
@@ -115,6 +116,8 @@ function toast(m, e) { const t = $('#toast'); t.textContent = m; t.className = '
 function render(d) {
   const t = d.task, me = d.me, team = d.team || [];
   $('#sender').textContent = d.senderName || '업무알림';
+  const ptok = d.portal || (new URLSearchParams(location.search).get('p') || '').replace(/[^a-f0-9]/gi, '');
+  if (ptok) { $('#toMy').href = 'my.html?p=' + ptok; $('#toMy').hidden = false; }
   const meDone = me.status === '완료';
   const cls = t.status === '완료' ? 'done' : t.dday < 0 ? 'over' : t.dday <= 3 ? 'soon' : '';
   const multi = team.length > 1;
