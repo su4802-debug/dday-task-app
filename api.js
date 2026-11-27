@@ -105,7 +105,7 @@
   const mapLogs = l => ({ at: DD.fmtTs(l.at), taskId: l.task_id, title: l.task_title, owner: l.to_name, channel: l.channel,
     to: l.to_addr, kind: l.kind, mode: l.mode, result: l.result, detail: l.detail });
   const mapReport = r => ({ at: DD.fmtTs(r.at), taskId: r.task_id, title: r.task_title, owner: r.worker_name, prevProgress: r.prev_progress,
-    progress: r.progress, status: r.status, expected: r.expected || '', content: r.content, workerId: r.worker_id || '', photos: r.photos || [] });
+    progress: r.progress, status: r.status, expected: r.expected || '', content: r.content, workerId: r.worker_id || '', photos: r.photos || [], photosDeleted: r.photos_deleted || 0 });
 
   async function getReports(o) {
     o = o || {};
@@ -153,7 +153,7 @@
   }
 
   const SETTING_KEYS = ['remindDays', 'overdueEvery', 'sendTime', 'senderName', 'adminEmail', 'adminDigest', 'notifyOnComplete',
-    'notifyOnReport', 'appUrl', 'mailSubject', 'mailBody', 'chatText', 'chatGroupText', 'kakaoJsKey'];
+    'notifyOnReport', 'appUrl', 'mailSubject', 'mailBody', 'chatText', 'chatGroupText', 'kakaoJsKey', 'photoKeepMonths'];
 
   /** 중요도·우선순위 저장 (칸이 아직 없으면 업데이트 SQL 안내) */
   async function setPriority(id, importance, priority) {

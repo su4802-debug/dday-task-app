@@ -569,6 +569,9 @@
         <span class="hint">{보고링크}를 꼭 넣어 주세요.</span></div>
       <div class="f"><label>단체방용 (공동 작업자 전원이 있는 방에 보낼 때)</label><textarea name="chatGroupText" rows="9" style="background:#eef4fa"></textarea>
         <span class="hint"><code>{작업자별링크}</code> 자리에 "· 이름: 링크" 목록이 미완료 작업자 수만큼 들어갑니다.</span></div>
+      <div class="f" style="margin-top:6px"><label>📷 보고 사진 보관 기간 (개월)</label>
+        <select name="photoKeepMonths"><option value="3">3개월</option><option value="6">6개월</option><option value="12">12개월</option><option value="24">24개월</option><option value="0">무기한 (삭제 안 함)</option></select>
+        <span class="hint">기간이 지난 보고 사진은 하루 한 번 자동으로 지웁니다 (보고 글은 남고 "보관 기간이 지나 삭제됨"으로 표시). Supabase 무료 저장 용량은 1GB입니다.</span></div>
       <div class="f" style="margin-top:6px"><label>💛 카카오톡 바로 보내기 — JavaScript 키</label>
         <input name="kakaoJsKey" placeholder="카카오 개발자 › 내 애플리케이션 › 앱 키 › JavaScript 키 (32자리)" autocomplete="off" spellcheck="false">
         <span class="hint">비워 두면 config.js 의 키를 씁니다. 넣으면 [카톡] 창에 <b>[💬 카카오톡으로 보내기]</b> 버튼이 생깁니다 (카드형 메시지 + 진행 보고 버튼). 카카오 개발자 콘솔에 <code>https://su4802-debug.github.io</code> 도메인을 등록해야 동작합니다.</span></div>
@@ -1399,7 +1402,7 @@ function renderReports() {
       `<td style="white-space:nowrap">${r.prevProgress}% → <b>${r.progress}%</b>${d > 0 ? ` <span class="up">▲${d}</span>` : d < 0 ? ` <span class="dn">▼${-d}</span>` : ''}</td>
       <td><span class="chip s-${esc(r.status)}">${esc(r.status)}</span></td>
       <td style="white-space:nowrap">${esc(r.expected || '-')}</td><td style="white-space:nowrap">${esc(r.at)}</td>
-      <td style="white-space:pre-wrap;min-width:300px">${esc(r.content)}${DD.photoThumbs(r.photos, null, 52)}</td></tr>`;
+      <td style="white-space:pre-wrap;min-width:300px">${esc(r.content)}${DD.photoThumbs(r.photos, null, 52, r.photosDeleted)}</td></tr>`;
   }).join('')).join('')
     : '<tr><td colspan="7" class="empty">보고 내역이 없습니다. 작업자가 메일·카톡으로 받은 링크에서 보고하면 여기에 쌓입니다.</td></tr>';
 }
@@ -1658,13 +1661,14 @@ $('#btnRunRsv').onclick = async () => { const r = await call('runReservations');
 /* ================= 알림 설정 ================= */
 const DAY_OPTS = [30, 14, 10, 7, 5, 3, 2, 1, 0];
 const setForm = $('#setForm');
-const TXT = ['overdueEvery','sendTime','senderName','adminEmail','mailSubject','mailBody','chatText','chatGroupText','appUrl','kakaoJsKey'];
+const TXT = ['overdueEvery','sendTime','senderName','adminEmail','mailSubject','mailBody','chatText','chatGroupText','appUrl','kakaoJsKey','photoKeepMonths'];
 const CHK = ['adminDigest','notifyOnComplete','notifyOnReport'];
 async function loadSettings() {
   const s = await call('getSettings');
   const days = String(s.remindDays).split(',').map(Number);
   $('#dayChips').innerHTML = DAY_OPTS.map(d => `<label><input type="checkbox" value="${d}" ${days.includes(d) ? 'checked' : ''}>${d === 0 ? 'D-DAY' : 'D-' + d}</label>`).join('');
-  TXT.forEach(k => setForm.elements[k].value = s[k] ?? '');
+  TXT.forEach(k => setForm.elements[k].value = s[k] ?? (k === 'photoKeepMonths' ? '6' : ''));
+  if (!setForm.elements.photoKeepMonths.value) setForm.elements.photoKeepMonths.value = '6';
   CHK.forEach(k => setForm.elements[k].checked = s[k] === 'Y');
   $('#urlHint').innerHTML = s.appUrl ? '' : '비어 있음 → 지금 주소 사용: ' + esc(s.detectedUrl);
   if (HAS_GAS) loadGh();

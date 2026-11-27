@@ -282,15 +282,17 @@
     supa = supa || (typeof window !== 'undefined' && window.APP_CONFIG && window.APP_CONFIG.SUPABASE_URL) || '';
     return String(supa).replace(/\/+$/, '') + '/storage/v1/object/public/report-photos/' + path;
   }
-  /** 사진 썸네일 (누르면 원본 새 창) */
-  function photoThumbs(photos, supa, size) {
-    if (!photos || !photos.length) return '';
+  /** 사진 썸네일 (작은 …_t.jpg 사용, 없으면 원본) — 누르면 원본 새 창.  deleted: 보관 기간 지나 지운 장수 */
+  function photoThumbs(photos, supa, size, deleted) {
     size = size || 64;
-    return '<div class="pthumbs" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">' + photos.map((p, i) => {
-      const u = esc(photoUrl(p, supa));
-      return '<a href="' + u + '" target="_blank" rel="noopener" title="사진 ' + (i + 1) + ' 크게 보기"><img src="' + u + '" loading="lazy" alt="사진 ' + (i + 1) +
+    let h = '';
+    if (photos && photos.length) h += '<div class="pthumbs" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">' + photos.map((p, i) => {
+      const u = esc(photoUrl(p, supa)), tu = esc(photoUrl(String(p).replace(/\.(jpg|png|webp)$/, '_t.$1'), supa));
+      return '<a href="' + u + '" target="_blank" rel="noopener" title="사진 ' + (i + 1) + ' 크게 보기"><img src="' + tu + '" data-full="' + u + '" onerror="if(this.dataset.full&&this.src!==this.dataset.full){this.src=this.dataset.full}" loading="lazy" alt="사진 ' + (i + 1) +
         '" style="width:' + size + 'px;height:' + size + 'px;object-fit:cover;border-radius:8px;border:1px solid #e4e7ec;display:block;background:#f2f4f7"></a>';
     }).join('') + '</div>';
+    if (deleted) h += '<div style="margin-top:6px;font-size:12px;color:#98a2b3">📷 사진 ' + deleted + '장 · 보관 기간이 지나 삭제됨</div>';
+    return h;
   }
 
   /** 'YYYY-MM-DD HH:mm' → {d:'26.11.07', t:'14:30'} */
@@ -341,7 +343,7 @@
         '<span class="mbar"><i class="' + (r.status === '완료' ? 'ok' : '') + '" style="width:' + Math.max(0, Math.min(100, r.progress || 0)) + '%"></i></span>' +
         '<span class="st s-' + esc(r.status) + '">' + esc(r.status) + '</span>' +
         (r.expected ? '<span>예상 ' + esc(String(r.expected).slice(2).replace(/-/g, '.')) + '</span>' : '') + '</div>' +
-        '<div class="txt">' + esc(r.content) + '</div>' + photoThumbs(r.photos, opts.supa) + '</td></tr>';
+        '<div class="txt">' + esc(r.content) + '</div>' + photoThumbs(r.photos, opts.supa, 0, r.photosDeleted) + '</td></tr>';
     }).join('');
     const bar = '<div class="rlog-bar"><span class="cnt">총 <b>' + list.length + '</b>건 · 최신순</span>' +
       (opts.multi && mineCnt ? '<span style="flex:1"></span><button type="button" class="on" onclick="var w=this.closest(\'.rlog-wrap\');w.classList.remove(\'only-mine\');this.className=\'on\';this.nextSibling.className=\'\'">전체</button><button type="button" onclick="var w=this.closest(\'.rlog-wrap\');w.classList.add(\'only-mine\');this.className=\'on\';this.previousSibling.className=\'\'">내 보고 (' + mineCnt + ')</button>' : '') + '</div>';

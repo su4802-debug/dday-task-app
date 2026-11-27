@@ -117,11 +117,13 @@
 
 ## 📷 보고 사진 첨부
 
-- 보고 화면에서 **사진 촬영 / 앨범 선택**, 보고 1건에 **최대 5장** (휴대폰에서 긴 변 1600px로 자동 축소)
+- 보고 화면에서 **사진 촬영 / 앨범 선택**, 보고 1건에 **최대 5장** (휴대폰에서 긴 변 1280px 원본 + 320px 썸네일로 자동 축소, 장당 약 150KB)
 - 사진은 Supabase **Storage**(`report-photos` 버킷)에 저장 — 보고 기록·관리자 화면·관리자 알림 메일에 썸네일 표시
 - 작업자는 보고 링크로 받은 **30분짜리 업로드 허가**로만 올릴 수 있고, 다른 사람의 사진을 자기 보고에 넣을 수 없습니다
 - 사진 주소는 추측할 수 없는 무작위 공개 주소입니다 (주소를 아는 사람은 볼 수 있음)
 - 처음 한 번 SQL Editor 에서 [`supabase/upgrade-photos.sql`](supabase/upgrade-photos.sql) 실행 (upgrade-portal.sql 다음에)
+- **보관 기간**(기본 6개월, 알림 설정에서 변경)이 지난 사진은 메일 발송기가 하루 한 번 자동 삭제 — 보고 글은 남음. 이어서 [`supabase/upgrade-photos-save.sql`](supabase/upgrade-photos-save.sql) 실행
+- Supabase 무료 저장 1GB ≈ 사진 약 6,000장
 
 ## 보안
 

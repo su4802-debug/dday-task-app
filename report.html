@@ -121,16 +121,19 @@ function api(fn, ...args) {
 /* ---------- 사진 첨부 ---------- */
 const MAXPH = 5;
 let PICS = [];                                       // [{blob, url}]
-async function shrink(file) {                        // 긴 변 1600px JPEG 로 줄이기
+async function shrink(file) {                        // 원본: 긴 변 1280px / 썸네일: 320px (용량 절약)
   const url = URL.createObjectURL(file);
   try {
     const img = new Image(); img.src = url; await img.decode();
-    const k = Math.min(1, 1600 / Math.max(img.naturalWidth, img.naturalHeight));
-    const c = document.createElement('canvas'); c.width = Math.round(img.naturalWidth * k); c.height = Math.round(img.naturalHeight * k);
-    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
-    const blob = await new Promise(ok => c.toBlob(ok, 'image/jpeg', 0.82));
-    if (!blob) throw new Error('변환 실패');
-    return blob;
+    const make = async (max, q) => {
+      const k = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+      const c = document.createElement('canvas'); c.width = Math.round(img.naturalWidth * k); c.height = Math.round(img.naturalHeight * k);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      const b = await new Promise(ok => c.toBlob(ok, 'image/jpeg', q));
+      if (!b) throw new Error('변환 실패');
+      return b;
+    };
+    return { blob: await make(1280, 0.78), thumb: await make(320, 0.7) };
   } finally { URL.revokeObjectURL(url); }
 }
 function drawPics() {
@@ -147,9 +150,11 @@ async function uploadPics(onStep) {
   const out = [];
   for (let i = 0; i < PICS.length; i++) {
     onStep(i + 1, PICS.length);
-    const path = 'u/' + t.data + '/' + uuid() + '.jpg';
+    const id = uuid(), path = 'u/' + t.data + '/' + id + '.jpg';
     const up = await SB.storage.from('report-photos').upload(path, PICS[i].blob, { contentType: 'image/jpeg', cacheControl: '31536000', upsert: false });
     if (up.error) throw new Error('사진 ' + (i + 1) + ' 올리기 실패: ' + up.error.message);
+    // 화면용 작은 썸네일 (실패해도 원본으로 보이므로 무시)
+    try { await SB.storage.from('report-photos').upload('u/' + t.data + '/' + id + '_t.jpg', PICS[i].thumb, { contentType: 'image/jpeg', cacheControl: '31536000', upsert: false }); } catch (e) {}
     out.push(path);
   }
   return out;
@@ -236,7 +241,7 @@ function bind(t) {
     for (const file of files) {
       if (PICS.length >= MAXPH) { toast('사진은 최대 ' + MAXPH + '장까지 첨부할 수 있습니다.', true); break; }
       if (!/^image\//.test(file.type) && !/\.(heic|heif|jpe?g|png|webp)$/i.test(file.name)) { toast('사진 파일만 첨부할 수 있습니다.', true); continue; }
-      try { const blob = await shrink(file); PICS.push({ blob, url: URL.createObjectURL(blob) }); drawPics(); }
+      try { const p = await shrink(file); PICS.push({ blob: p.blob, thumb: p.thumb, url: URL.createObjectURL(p.thumb) }); drawPics(); }
       catch (err) { toast('이 사진은 열 수 없습니다 (' + file.name + '). 다른 사진을 골라 주세요.', true); }
     }
   });

@@ -41,6 +41,8 @@ export function supabaseClient(url, key) {
   }
   return {
     rpc: (fn, args) => req('/rest/v1/rpc/' + fn, { method: 'POST', body: JSON.stringify(args || {}) }),
+    /** Storage 파일 삭제 (경로 목록) */
+    removePhotos: paths => req('/storage/v1/object/report-photos', { method: 'DELETE', body: JSON.stringify({ prefixes: paths }) }),
     settings: async () => {
       const rows = await req('/rest/v1/settings?select=key,value', { method: 'GET' });
       const o = {}; rows.forEach(r => (o[r.key] = r.value)); return o;
@@ -89,7 +91,21 @@ export async function run({ db, send, env, log = console.log, now = Date.now }) 
       }
     }
   }
-  const out = { tick, sent, failed, skipped };
+  // 보관 기간 지난 보고 사진 정리 (보고 글은 남김)
+  let photosRemoved = 0;
+  try {
+    if (db.removePhotos) {
+      const old = await db.rpc('mailer_photo_old', { p_limit: 100 });
+      if (old && old.length) {
+        const paths = [];
+        old.forEach(r => (r.photos || []).forEach(p => { paths.push(p); paths.push(p.replace(/\.(jpg|png|webp)$/, '_t.$1')); }));
+        await db.removePhotos(paths);
+        await db.rpc('mailer_photo_done', { p_ids: old.map(r => r.id) });
+        photosRemoved = paths.length / 2;
+      }
+    }
+  } catch (e) { log('photo cleanup', e.message); }
+  const out = { tick, sent, failed, skipped, photosRemoved };
   log('done', JSON.stringify(out));
   return out;
 }
