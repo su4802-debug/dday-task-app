@@ -75,6 +75,13 @@
   .brandbar{display:flex;align-items:center;gap:10px;padding:14px 2px 4px}
   .brandbar img{width:32px;height:32px}
   .brandbar b{font-size:15px;letter-spacing:-.02em}
+  .phs{display:flex;flex-wrap:wrap;gap:8px}
+  .phs .ph{position:relative;width:76px;height:76px;border-radius:10px;overflow:hidden;border:1px solid var(--line);background:#f2f4f7}
+  .phs .ph img{width:100%;height:100%;object-fit:cover;display:block}
+  .phs .ph button{position:absolute;top:3px;right:3px;width:22px;height:22px;border-radius:50%;border:0;background:rgba(16,24,40,.7);color:#fff;font-size:13px;line-height:22px;padding:0;cursor:pointer}
+  .phbtns{margin-top:8px}
+  .phadd{display:inline-flex;align-items:center;gap:6px;border:1px dashed #b9c4d8;background:#fbfcfe;border-radius:10px;padding:10px 14px;font-size:14px;font-weight:600;color:#344054;cursor:pointer}
+  .phadd.full{opacity:.5;pointer-events:none}
   .tomy{border:1px solid #c7d4fb;background:#fff;color:#1f4fd8;border-radius:10px;padding:6px 11px;font-size:13px;font-weight:700;text-decoration:none;white-space:nowrap}
   .brandbar small{display:block;font-size:11.5px;color:var(--sub);font-weight:500}
   .submit{box-shadow:0 4px 12px rgba(31,79,216,.25)}
@@ -105,10 +112,47 @@ function api(fn, ...args) {
   const p = fn === 'reportLoad' ? { p_token: args[0] }
     : { p_token: args[0], p_progress: Math.round(Number(args[1].progress) || 0), p_status: args[1].status,
         p_expected: args[1].expected || null, p_content: args[1].content };
+  if (fn !== 'reportLoad' && args[1].photos && args[1].photos.length) p.p_photos = args[1].photos;
   return SB.rpc(fn === 'reportLoad' ? 'report_load' : 'report_submit', p).then(r => {
     if (r.error) throw new Error(/Failed to fetch/i.test(r.error.message) ? '서버에 연결할 수 없습니다. 잠시 후 다시 시도하세요.' : r.error.message);
     return r.data;
   });
+}
+/* ---------- 사진 첨부 ---------- */
+const MAXPH = 5;
+let PICS = [];                                       // [{blob, url}]
+async function shrink(file) {                        // 긴 변 1600px JPEG 로 줄이기
+  const url = URL.createObjectURL(file);
+  try {
+    const img = new Image(); img.src = url; await img.decode();
+    const k = Math.min(1, 1600 / Math.max(img.naturalWidth, img.naturalHeight));
+    const c = document.createElement('canvas'); c.width = Math.round(img.naturalWidth * k); c.height = Math.round(img.naturalHeight * k);
+    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+    const blob = await new Promise(ok => c.toBlob(ok, 'image/jpeg', 0.82));
+    if (!blob) throw new Error('변환 실패');
+    return blob;
+  } finally { URL.revokeObjectURL(url); }
+}
+function drawPics() {
+  const box = $('#phs'); if (!box) return;
+  box.innerHTML = PICS.map((p, i) => `<div class="ph"><img src="${p.url}" alt="첨부 ${i + 1}"><button type="button" data-rm="${i}" aria-label="삭제">✕</button></div>`).join('');
+  document.querySelector('.phadd').classList.toggle('full', PICS.length >= MAXPH);
+}
+function uuid() { return (crypto.randomUUID ? crypto.randomUUID() : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => { const v = Math.random() * 16 | 0; return (c === 'x' ? v : (v & 3 | 8)).toString(16); })); }
+async function uploadPics(onStep) {
+  if (!PICS.length) return [];
+  if (!HAS_GAS) return PICS.map(p => p.url);           // 미리보기 모드
+  const t = await SB.rpc('photo_ticket', { p_token: RTOKEN });
+  if (t.error) throw new Error(/photo_ticket/.test(t.error.message) ? '사진 첨부 기능이 아직 설정되지 않았습니다. 관리자에게 알려 주세요. (사진 없이 보고는 가능)' : t.error.message);
+  const out = [];
+  for (let i = 0; i < PICS.length; i++) {
+    onStep(i + 1, PICS.length);
+    const path = 'u/' + t.data + '/' + uuid() + '.jpg';
+    const up = await SB.storage.from('report-photos').upload(path, PICS[i].blob, { contentType: 'image/jpeg', cacheControl: '31536000', upsert: false });
+    if (up.error) throw new Error('사진 ' + (i + 1) + ' 올리기 실패: ' + up.error.message);
+    out.push(path);
+  }
+  return out;
 }
 let tt;
 function toast(m, e) { const t = $('#toast'); t.textContent = m; t.className = 'toast show' + (e ? ' e' : ''); clearTimeout(tt); tt = setTimeout(() => t.className = 'toast', 3200); }
@@ -159,6 +203,9 @@ function render(d) {
       <div class="hint" id="eh"></div>
       <label class="l">진행 내용 <span class="err">*</span></label>
       <textarea name="content" maxlength="2000" placeholder="지금까지 한 일, 남은 일, 도움이 필요한 부분 등을 적어 주세요."></textarea>
+      <label class="l">사진 첨부 <span class="sub" style="font-weight:500">(선택 · 최대 ${MAXPH}장)</span></label>
+      <div class="phs" id="phs"></div>
+      <div class="phbtns"><label class="phadd">📷 사진 촬영 / 선택<input type="file" id="phIn" accept="image/*" multiple hidden></label></div>
       <button class="submit" id="sb">보고하기</button>
     </form>`;
   }
@@ -183,6 +230,17 @@ function bind(t) {
     sync();
   });
   f.querySelectorAll('[data-p]').forEach(b => b.onclick = () => { f.progress.value = b.dataset.p; sync(); });
+  if (HAS_GAS) PICS.forEach(p => URL.revokeObjectURL(p.url)); PICS = []; drawPics();
+  $('#phIn').addEventListener('change', async e => {
+    const files = [...e.target.files]; e.target.value = '';
+    for (const file of files) {
+      if (PICS.length >= MAXPH) { toast('사진은 최대 ' + MAXPH + '장까지 첨부할 수 있습니다.', true); break; }
+      if (!/^image\//.test(file.type) && !/\.(heic|heif|jpe?g|png|webp)$/i.test(file.name)) { toast('사진 파일만 첨부할 수 있습니다.', true); continue; }
+      try { const blob = await shrink(file); PICS.push({ blob, url: URL.createObjectURL(blob) }); drawPics(); }
+      catch (err) { toast('이 사진은 열 수 없습니다 (' + file.name + '). 다른 사진을 골라 주세요.', true); }
+    }
+  });
+  $('#phs').addEventListener('click', e => { const b = e.target.closest('[data-rm]'); if (!b) return; URL.revokeObjectURL(PICS[+b.dataset.rm].url); PICS.splice(+b.dataset.rm, 1); drawPics(); });
   f.addEventListener('submit', async e => {
     e.preventDefault();
     const data = { progress: f.progress.value, status: f.status.value, expected: f.expected.value, content: f.content.value.trim() };
@@ -190,6 +248,8 @@ function bind(t) {
     if (data.status === '완료' && !confirm('완료로 보고하면 내 알림이 중지됩니다. 완료 보고할까요?')) return;
     $('#sb').disabled = true; $('#sb').textContent = '보내는 중…';
     try {
+      data.photos = await uploadPics((i, n) => { $('#sb').textContent = `사진 올리는 중… (${i}/${n})`; });
+      $('#sb').textContent = '보내는 중…';
       render(await api('reportSubmit', RTOKEN, data));
       toast(data.status === '완료' ? '완료 보고가 접수되었습니다. 수고하셨습니다!' : '보고가 접수되었습니다. 감사합니다.');
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -216,7 +276,7 @@ const Demo = (() => {
   return {
     reportLoad: () => new Promise(r => setTimeout(() => r(JSON.parse(JSON.stringify(d))), 200)),
     reportSubmit: (_, x) => new Promise(r => setTimeout(() => {
-      d.reports.unshift({ at: new Date().toISOString().slice(0, 16).replace('T', ' '), owner: d.me.name, prevProgress: d.me.progress, progress: +x.progress, status: x.status, expected: x.expected, content: x.content });
+      d.reports.unshift({ at: new Date().toISOString().slice(0, 16).replace('T', ' '), owner: d.me.name, prevProgress: d.me.progress, progress: +x.progress, status: x.status, expected: x.expected, content: x.content, photos: x.photos || [] });
       Object.assign(d.me, { progress: +x.progress, status: x.status, expected: x.expected, doneDate: x.status === '완료' ? add(0) : '' });
       Object.assign(d.team[0], { progress: +x.progress, status: x.status, expected: x.expected, lastReportAt: add(0) + ' 지금' });
       recalc(); r(JSON.parse(JSON.stringify(d)));

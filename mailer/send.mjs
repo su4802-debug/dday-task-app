@@ -66,6 +66,8 @@ export async function run({ db, send, env, log = console.log, now = Date.now }) 
     for (const q of batch) {
       let m = { toName: '', title: '', kind: q.kind, mode: '자동' };
       try {
+        if (q.payload && Array.isArray(q.payload.photos) && q.payload.photos.length)   // 첨부 사진 → 공개 주소
+          q.payload.photoUrls = q.payload.photos.map(p => DD.photoUrl(p, env.SUPABASE_URL));
         m = DD.renderQueued(q, cfg, base, today);
         if (m.skip) {
           skipped++;

@@ -113,6 +113,8 @@
         ['전체 진행률', t.progress + '% (완료 ' + doneCnt + '/' + ws.length + '명)'],
         ['마감일', t.due + ' (' + ddLabel(t.dday) + ')'], ['마감예상일', p.expected || w.expected || '미입력']
       ].concat(ws.length > 1 ? [['작업자 현황', teamLine(t)]] : []), cleanBase(base), '관리자 페이지 열기')
+        .replace(/<\/div>$/, (p.photoUrls && p.photoUrls.length ? '<p style="margin:14px 0 6px;font-size:13px;color:#666">📷 첨부 사진 ' + p.photoUrls.length + '장 (누르면 원본)</p><div>' +
+          p.photoUrls.map(u => '<a href="' + esc(u) + '" target="_blank"><img src="' + esc(u) + '" width="120" height="120" style="width:120px;height:120px;object-fit:cover;border-radius:8px;border:1px solid #ddd;margin:0 6px 6px 0" alt="첨부 사진"></a>').join('') + '</div>' : '') + '</div>')
     };
   }
 
@@ -274,6 +276,23 @@
   }
 
 
+  /** 보고 사진 주소 (Supabase Storage 공개 주소) */
+  function photoUrl(path, supa) {
+    if (/^(https?:|blob:|data:)/.test(path)) return path;
+    supa = supa || (typeof window !== 'undefined' && window.APP_CONFIG && window.APP_CONFIG.SUPABASE_URL) || '';
+    return String(supa).replace(/\/+$/, '') + '/storage/v1/object/public/report-photos/' + path;
+  }
+  /** 사진 썸네일 (누르면 원본 새 창) */
+  function photoThumbs(photos, supa, size) {
+    if (!photos || !photos.length) return '';
+    size = size || 64;
+    return '<div class="pthumbs" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">' + photos.map((p, i) => {
+      const u = esc(photoUrl(p, supa));
+      return '<a href="' + u + '" target="_blank" rel="noopener" title="사진 ' + (i + 1) + ' 크게 보기"><img src="' + u + '" loading="lazy" alt="사진 ' + (i + 1) +
+        '" style="width:' + size + 'px;height:' + size + 'px;object-fit:cover;border-radius:8px;border:1px solid #e4e7ec;display:block;background:#f2f4f7"></a>';
+    }).join('') + '</div>';
+  }
+
   /** 'YYYY-MM-DD HH:mm' → {d:'26.11.07', t:'14:30'} */
   function shortTs(at) {
     const m = String(at || '').match(/^\d{2}(\d{2})-(\d{2})-(\d{2})[ T](\d{2}:\d{2})/);
@@ -322,7 +341,7 @@
         '<span class="mbar"><i class="' + (r.status === '완료' ? 'ok' : '') + '" style="width:' + Math.max(0, Math.min(100, r.progress || 0)) + '%"></i></span>' +
         '<span class="st s-' + esc(r.status) + '">' + esc(r.status) + '</span>' +
         (r.expected ? '<span>예상 ' + esc(String(r.expected).slice(2).replace(/-/g, '.')) + '</span>' : '') + '</div>' +
-        '<div class="txt">' + esc(r.content) + '</div></td></tr>';
+        '<div class="txt">' + esc(r.content) + '</div>' + photoThumbs(r.photos, opts.supa) + '</td></tr>';
     }).join('');
     const bar = '<div class="rlog-bar"><span class="cnt">총 <b>' + list.length + '</b>건 · 최신순</span>' +
       (opts.multi && mineCnt ? '<span style="flex:1"></span><button type="button" class="on" onclick="var w=this.closest(\'.rlog-wrap\');w.classList.remove(\'only-mine\');this.className=\'on\';this.nextSibling.className=\'\'">전체</button><button type="button" onclick="var w=this.closest(\'.rlog-wrap\');w.classList.add(\'only-mine\');this.className=\'on\';this.previousSibling.className=\'\'">내 보고 (' + mineCnt + ')</button>' : '') + '</div>';
@@ -333,6 +352,6 @@
 
   root.DD = {
     esc, ddLabel, kindLabel, KIND_REQUEST, todayKst, nowKst, diffDays, addDays, fmtTs, kstInputToIso, isoToKstInput,
-    cleanBase, reportUrl, portalUrl, portalMail, kakaoPortal, fastMailState, kakaoTemplates, shortTs, reportLog, vars, fill, mailHtml, buildMsg, shareText, reportAdminMail, completeAdminMail, digestMail, renderQueued
+    cleanBase, reportUrl, portalUrl, photoUrl, photoThumbs, portalMail, kakaoPortal, fastMailState, kakaoTemplates, shortTs, reportLog, vars, fill, mailHtml, buildMsg, shareText, reportAdminMail, completeAdminMail, digestMail, renderQueued
   };
 })(typeof window !== 'undefined' ? window : globalThis);

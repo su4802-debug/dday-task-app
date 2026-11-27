@@ -115,6 +115,14 @@
 - 관리자 페이지 **[👤 담당자 페이지]** 탭 → 사람별 **[카톡] [메일] [링크 복사] [열어보기] [재발급]**
 - 처음 한 번 Supabase SQL Editor 에서 [`supabase/upgrade-portal.sql`](supabase/upgrade-portal.sql) 실행 (새로 설치하면 `schema.sql` 에 포함)
 
+## 📷 보고 사진 첨부
+
+- 보고 화면에서 **사진 촬영 / 앨범 선택**, 보고 1건에 **최대 5장** (휴대폰에서 긴 변 1600px로 자동 축소)
+- 사진은 Supabase **Storage**(`report-photos` 버킷)에 저장 — 보고 기록·관리자 화면·관리자 알림 메일에 썸네일 표시
+- 작업자는 보고 링크로 받은 **30분짜리 업로드 허가**로만 올릴 수 있고, 다른 사람의 사진을 자기 보고에 넣을 수 없습니다
+- 사진 주소는 추측할 수 없는 무작위 공개 주소입니다 (주소를 아는 사람은 볼 수 있음)
+- 처음 한 번 SQL Editor 에서 [`supabase/upgrade-photos.sql`](supabase/upgrade-photos.sql) 실행 (upgrade-portal.sql 다음에)
+
 ## 보안
 
 - **관리자**: Supabase 계정 로그인 + `admins` 목록에 있는 이메일만 데이터 접근 (DB 행 단위 보안 RLS)

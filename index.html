@@ -1399,7 +1399,7 @@ function renderReports() {
       `<td style="white-space:nowrap">${r.prevProgress}% → <b>${r.progress}%</b>${d > 0 ? ` <span class="up">▲${d}</span>` : d < 0 ? ` <span class="dn">▼${-d}</span>` : ''}</td>
       <td><span class="chip s-${esc(r.status)}">${esc(r.status)}</span></td>
       <td style="white-space:nowrap">${esc(r.expected || '-')}</td><td style="white-space:nowrap">${esc(r.at)}</td>
-      <td style="white-space:pre-wrap;min-width:300px">${esc(r.content)}</td></tr>`;
+      <td style="white-space:pre-wrap;min-width:300px">${esc(r.content)}${DD.photoThumbs(r.photos, null, 52)}</td></tr>`;
   }).join('')).join('')
     : '<tr><td colspan="7" class="empty">보고 내역이 없습니다. 작업자가 메일·카톡으로 받은 링크에서 보고하면 여기에 쌓입니다.</td></tr>';
 }
