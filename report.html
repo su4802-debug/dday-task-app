@@ -75,6 +75,22 @@
   .brandbar{display:flex;align-items:center;gap:10px;padding:14px 2px 4px}
   .brandbar img{width:32px;height:32px}
   .brandbar b{font-size:15px;letter-spacing:-.02em}
+  .ed{border:0;padding:0;border-radius:18px;width:min(520px,94vw);max-height:92vh;box-shadow:0 20px 60px rgba(16,24,40,.25)}
+  .ed::backdrop{background:rgba(16,24,40,.45)}
+  .ed form{display:flex;flex-direction:column;max-height:92vh}
+  .edh{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--line)}
+  .edx{border:0;background:#f2f4f7;border-radius:50%;width:32px;height:32px;font-size:15px;cursor:pointer}
+  .edb{padding:4px 18px 16px;overflow:auto}
+  .edb input[type=date],.edb input[type=time],.edb textarea{width:100%;font:inherit;padding:10px 11px;border:1px solid var(--line);border-radius:10px;box-sizing:border-box}
+  .edb textarea{min-height:110px;resize:vertical}
+  .edb input[type=range]{width:100%}
+  .edrow{display:grid;grid-template-columns:1.3fr 1fr;gap:8px}
+  .edst{display:flex;gap:8px}.edst label{flex:1;border:1px solid var(--line);border-radius:10px;padding:9px;text-align:center;font-weight:600;cursor:pointer}
+  .edst label:has(input:checked){border-color:var(--primary);background:var(--pw);color:var(--primary)}
+  .edst input{display:none}
+  .edf{display:flex;gap:8px;padding:12px 18px calc(12px + env(safe-area-inset-bottom));border-top:1px solid var(--line)}
+  .edf .submit{flex:2;margin:0}.btn2{flex:1;border:1px solid var(--line);background:#fff;border-radius:12px;font:inherit;font-weight:600;cursor:pointer}
+  @media (max-width:560px){ .ed{width:100vw;max-width:100vw;height:100dvh;max-height:100dvh;border-radius:0;margin:0} .ed form{max-height:100dvh;height:100%} .edb{flex:1} }
   .phs{display:flex;flex-wrap:wrap;gap:8px}
   .phs .ph{position:relative;width:76px;height:76px;border-radius:10px;overflow:hidden;border:1px solid var(--line);background:#f2f4f7}
   .phs .ph img{width:100%;height:100%;object-fit:cover;display:block}
@@ -97,6 +113,27 @@
   <div id="app"><div class="card msg">불러오는 중…</div></div>
 </div>
 <div class="toast" id="toast"></div>
+<dialog id="ed" class="ed">
+  <form id="edf" method="dialog">
+    <div class="edh"><b>✏️ 보고 수정</b><button type="button" class="edx" id="edClose" aria-label="닫기">✕</button></div>
+    <div class="edb">
+      <label class="l">보고 일시</label>
+      <div class="edrow"><input type="date" name="d" required><input type="time" name="t" required></div>
+      <label class="l">진행률 <b id="edPo"></b></label>
+      <input type="range" name="progress" min="0" max="100" step="5">
+      <label class="l">상태</label>
+      <div class="edst"><label><input type="radio" name="status" value="진행중"> 진행중</label><label><input type="radio" name="status" value="보류"> 보류</label><label><input type="radio" name="status" value="완료"> 완료</label></div>
+      <label class="l">마감예상일</label>
+      <input type="date" name="expected">
+      <label class="l">진행 내용</label>
+      <textarea name="content" maxlength="2000" required></textarea>
+      <label class="l">사진 <span class="sub" style="font-weight:500">(✕ 로 빼기 · 최대 5장)</span></label>
+      <div class="phs" id="edPh"></div>
+      <div class="phbtns"><label class="phadd" id="edAdd">📷 사진 추가<input type="file" id="edIn" accept="image/*" multiple hidden></label></div>
+    </div>
+    <div class="edf"><button type="button" class="btn2" id="edCancel">취소</button><button type="submit" class="submit" id="edSave">수정 저장</button></div>
+  </form>
+</dialog>
 
 <script>
 const RTOKEN = (new URLSearchParams(location.search).get('r') || '').replace(/[^a-f0-9]/gi, '').slice(0, 64).toLowerCase();
@@ -142,23 +179,84 @@ function drawPics() {
   document.querySelector('.phadd').classList.toggle('full', PICS.length >= MAXPH);
 }
 function uuid() { return (crypto.randomUUID ? crypto.randomUUID() : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => { const v = Math.random() * 16 | 0; return (c === 'x' ? v : (v & 3 | 8)).toString(16); })); }
-async function uploadPics(onStep) {
-  if (!PICS.length) return [];
-  if (!HAS_GAS) return PICS.map(p => p.url);           // 미리보기 모드
+async function uploadPics(onStep, list) {
+  list = list || PICS;
+  if (!list.length) return [];
+  if (!HAS_GAS) return list.map(p => p.url);           // 미리보기 모드
   const t = await SB.rpc('photo_ticket', { p_token: RTOKEN });
   if (t.error) throw new Error(/photo_ticket/.test(t.error.message) ? '사진 첨부 기능이 아직 설정되지 않았습니다. 관리자에게 알려 주세요. (사진 없이 보고는 가능)' : t.error.message);
   const out = [];
-  for (let i = 0; i < PICS.length; i++) {
-    onStep(i + 1, PICS.length);
+  for (let i = 0; i < list.length; i++) {
+    onStep(i + 1, list.length);
     const id = uuid(), path = 'u/' + t.data + '/' + id + '.jpg';
-    const up = await SB.storage.from('report-photos').upload(path, PICS[i].blob, { contentType: 'image/jpeg', cacheControl: '31536000', upsert: false });
+    const up = await SB.storage.from('report-photos').upload(path, list[i].blob, { contentType: 'image/jpeg', cacheControl: '31536000', upsert: false });
     if (up.error) throw new Error('사진 ' + (i + 1) + ' 올리기 실패: ' + up.error.message);
     // 화면용 작은 썸네일 (실패해도 원본으로 보이므로 무시)
-    try { await SB.storage.from('report-photos').upload('u/' + t.data + '/' + id + '_t.jpg', PICS[i].thumb, { contentType: 'image/jpeg', cacheControl: '31536000', upsert: false }); } catch (e) {}
+    try { await SB.storage.from('report-photos').upload('u/' + t.data + '/' + id + '_t.jpg', list[i].thumb, { contentType: 'image/jpeg', cacheControl: '31536000', upsert: false }); } catch (e) {}
     out.push(path);
   }
   return out;
 }
+/* ---------- 보고 수정 ---------- */
+let LAST = null, EDIT = null;
+function edPics() {
+  const items = EDIT.keep.map((p, i) => ({ src: DD.photoUrl(String(p).replace(/\.(jpg|png|webp)$/, '_t.$1')), full: DD.photoUrl(p), k: 'k' + i }))
+    .concat(EDIT.add.map((p, i) => ({ src: p.url, full: p.url, k: 'a' + i })));
+  $('#edPh').innerHTML = items.map(x => `<div class="ph"><img src="${esc(x.src)}" data-full="${esc(x.full)}" onerror="if(this.src!==this.dataset.full)this.src=this.dataset.full" alt=""><button type="button" data-ed-rm="${x.k}" aria-label="삭제">✕</button></div>`).join('');
+  $('#edAdd').classList.toggle('full', items.length >= MAXPH);
+}
+function openEdit(id) {
+  const rp = (LAST.reports || []).find(x => String(x.id) === String(id)); if (!rp) return;
+  const f = $('#edf'), at = String(rp.at || '');
+  f.d.value = at.slice(0, 10); f.t.value = at.slice(11, 16);
+  f.progress.value = rp.progress; $('#edPo').textContent = rp.progress + '%';
+  [...f.status].forEach(x => x.checked = x.value === rp.status);
+  if (![...f.status].some(x => x.checked)) f.status[0].checked = true;
+  f.expected.value = rp.expected || ''; f.content.value = rp.content || '';
+  f.d.max = new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10);
+  EDIT = { id: rp.id, keep: (rp.photos || []).slice(), add: [] };
+  edPics(); $('#edSave').disabled = false; $('#edSave').textContent = '수정 저장';
+  $('#ed').showModal();
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-edit]'); if (b) { openEdit(b.dataset.edit); return; }
+  const rm = e.target.closest('[data-ed-rm]');
+  if (rm && EDIT) { const k = rm.dataset.edRm; if (k[0] === 'k') EDIT.keep.splice(+k.slice(1), 1); else EDIT.add.splice(+k.slice(1), 1); edPics(); }
+});
+['#edClose', '#edCancel'].forEach(s => $(s).onclick = () => $('#ed').close());
+$('#edf').progress.addEventListener('input', e => { $('#edPo').textContent = e.target.value + '%'; if (+e.target.value < 100 && $('#edf').status.value === '완료') $('#edf').status[0].checked = true; });
+$('#edf').addEventListener('change', e => { if (e.target.name === 'status' && e.target.value === '완료') { $('#edf').progress.value = 100; $('#edPo').textContent = '100%'; } });
+$('#edIn').addEventListener('change', async e => {
+  const files = [...e.target.files]; e.target.value = '';
+  for (const file of files) {
+    if (EDIT.keep.length + EDIT.add.length >= MAXPH) { toast('사진은 최대 ' + MAXPH + '장까지 첨부할 수 있습니다.', true); break; }
+    try { const p = await shrink(file); EDIT.add.push({ blob: p.blob, thumb: p.thumb, url: URL.createObjectURL(p.thumb) }); edPics(); }
+    catch (err) { toast('이 사진은 열 수 없습니다 (' + file.name + ').', true); }
+  }
+});
+$('#edf').addEventListener('submit', async e => {
+  e.preventDefault();
+  const f = e.target, content = f.content.value.trim();
+  if (!content) { toast('진행 내용을 입력하세요.', true); return; }
+  if (!f.d.value || !f.t.value) { toast('보고 일시를 입력하세요.', true); return; }
+  $('#edSave').disabled = true; $('#edSave').textContent = '저장 중…';
+  try {
+    const added = await uploadPics((i, n) => { $('#edSave').textContent = `사진 올리는 중… (${i}/${n})`; }, EDIT.add);
+    const args = { p_token: RTOKEN, p_id: EDIT.id, p_at: f.d.value + ' ' + f.t.value, p_progress: +f.progress.value, p_status: f.status.value,
+      p_expected: f.expected.value || null, p_content: content, p_photos: EDIT.keep.concat(added) };
+    let d;
+    if (!HAS_GAS) d = Demo.reportUpdate(args);
+    else {
+      const res = await SB.rpc('report_update', args);
+      if (res.error) throw new Error(/report_update/.test(res.error.message) && /function|schema/i.test(res.error.message) ? '보고 수정 기능이 아직 설정되지 않았습니다. 관리자에게 알려 주세요.' : res.error.message);
+      d = res.data;
+    }
+    $('#ed').close(); render(d); toast('보고를 수정했습니다.');
+  } catch (err) {
+    toast(err.message || String(err), true);
+    $('#edSave').disabled = false; $('#edSave').textContent = '수정 저장';
+  }
+});
 let tt;
 function toast(m, e) { const t = $('#toast'); t.textContent = m; t.className = 'toast show' + (e ? ' e' : ''); clearTimeout(tt); tt = setTimeout(() => t.className = 'toast', 3200); }
 
@@ -216,8 +314,9 @@ function render(d) {
   }
 
   html += `<div class="card"><h2>📋 진행 보고 기록${multi ? ' <span class="sub" style="font-weight:500;font-size:12.5px">(공동 작업자 전체)</span>' : ''}</h2>` +
-    DD.reportLog(d.reports, { me: me.name, multi, fold: 10 }) + `</div>`;
+    DD.reportLog(d.reports, { me: me.name, multi, fold: 10, editable: true }) + `</div>`;
   $('#app').innerHTML = html;
+  LAST = d;
   if (!meDone) bind(t);
 }
 
@@ -280,8 +379,13 @@ const Demo = (() => {
   const recalc = () => { d.task.progress = Math.round(d.team.reduce((s, w) => s + w.progress, 0) / d.team.length); };
   return {
     reportLoad: () => new Promise(r => setTimeout(() => r(JSON.parse(JSON.stringify(d))), 200)),
+    reportUpdate: a => {
+      const rp = d.reports.find(x => x.id === a.p_id);
+      Object.assign(rp, { at: a.p_at, progress: a.p_progress, status: a.p_status, expected: a.p_expected, content: a.p_content, photos: a.p_photos, editedAt: 'now' });
+      d.reports.sort((x, y) => y.at.localeCompare(x.at)); return JSON.parse(JSON.stringify(d));
+    },
     reportSubmit: (_, x) => new Promise(r => setTimeout(() => {
-      d.reports.unshift({ at: new Date().toISOString().slice(0, 16).replace('T', ' '), owner: d.me.name, prevProgress: d.me.progress, progress: +x.progress, status: x.status, expected: x.expected, content: x.content, photos: x.photos || [] });
+      d.reports.unshift({ at: new Date().toISOString().slice(0, 16).replace('T', ' '), owner: d.me.name, prevProgress: d.me.progress, progress: +x.progress, status: x.status, expected: x.expected, content: x.content, photos: x.photos || [], id: Date.now(), mine: true });
       Object.assign(d.me, { progress: +x.progress, status: x.status, expected: x.expected, doneDate: x.status === '완료' ? add(0) : '' });
       Object.assign(d.team[0], { progress: +x.progress, status: x.status, expected: x.expected, lastReportAt: add(0) + ' 지금' });
       recalc(); r(JSON.parse(JSON.stringify(d)));

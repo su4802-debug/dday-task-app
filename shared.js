@@ -323,6 +323,8 @@
     '.rlog-bar button.on{background:#101828;border-color:#101828;color:#fff}' +
     '.rlog-wrap.only-mine tr:not(.mine){display:none}' +
     '.rlog-wrap.fold tr.more{display:none}' +
+    '.rlog .edited{font-size:11px;color:#98a2b3;border:1px solid #e4e7ec;border-radius:99px;padding:0 7px}' +
+    '.rlog .rl-edit{margin-left:auto;border:1px solid #c7d4fb;background:#fff;color:#1f4fd8;border-radius:8px;padding:3px 9px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit}' +
     '.rlog-more{display:block;width:100%;margin-top:8px;border:1px dashed #d0d5dd;background:#fff;border-radius:10px;padding:9px;font-size:13px;color:#344054;cursor:pointer}';
   /** 진행 보고 기록 표 (최신순).  opts: {me: 내 이름, multi: 작업자 여러 명, fold: 처음에 보일 건수} */
   function reportLog(reports, opts) {
@@ -342,7 +344,9 @@
         '<span class="pg">' + (r.prevProgress || 0) + '% → ' + (r.progress || 0) + '%</span>' + dTxt +
         '<span class="mbar"><i class="' + (r.status === '완료' ? 'ok' : '') + '" style="width:' + Math.max(0, Math.min(100, r.progress || 0)) + '%"></i></span>' +
         '<span class="st s-' + esc(r.status) + '">' + esc(r.status) + '</span>' +
-        (r.expected ? '<span>예상 ' + esc(String(r.expected).slice(2).replace(/-/g, '.')) + '</span>' : '') + '</div>' +
+        (r.expected ? '<span>예상 ' + esc(String(r.expected).slice(2).replace(/-/g, '.')) + '</span>' : '') +
+        (r.editedAt ? '<span class="edited" title="' + esc(r.editedAt) + ' 수정">수정됨</span>' : '') +
+        (opts.editable && r.mine && r.id ? '<button type="button" class="rl-edit" data-edit="' + esc(r.id) + '">✏️ 수정</button>' : '') + '</div>' +
         '<div class="txt">' + esc(r.content) + '</div>' + photoThumbs(r.photos, opts.supa, 0, r.photosDeleted) + '</td></tr>';
     }).join('');
     const bar = '<div class="rlog-bar"><span class="cnt">총 <b>' + list.length + '</b>건 · 최신순</span>' +
